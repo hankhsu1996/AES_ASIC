@@ -1,7 +1,7 @@
 `include "subByte.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
-`define TEST_LEN 10
+`define TEST_LEN 96
 
 module AES_core_tb;
 

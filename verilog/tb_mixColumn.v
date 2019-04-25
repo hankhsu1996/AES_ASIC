@@ -1,7 +1,7 @@
-`include "subByte.v"
+`include "mixColumn.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
-`define TEST_LEN 96
+`define TEST_LEN 88
 
 module AES_core_tb;
 
@@ -26,8 +26,8 @@ module AES_core_tb;
 
 	// read from file
 	initial begin
-		$readmemh("./DAT/data_subByte.txt", mem_data);
-		$readmemh("./DAT/golden_subByte.txt", golden);
+		$readmemh("./DAT/data_mixColumn.txt", mem_data);
+		$readmemh("./DAT/golden_mixColumn.txt", golden);
 	end
 
 	// initialization
@@ -45,7 +45,7 @@ module AES_core_tb;
 			end
 
 			@(negedge clk) begin
-				$display("testing: subByte",);
+				$display("testing: mixColumn",);
 				$display("block:     %h\nnew_block: %h\ngloden:    %h\n", block, new_block, golden[i]);
 				if (golden[i] !== new_block) begin
 					err_count = err_count + 1;

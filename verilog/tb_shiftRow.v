@@ -48,7 +48,7 @@ module AES_core_tb;
 				$display("testing: shiftRow",);
 				$display("block:     %h\nnew_block: %h\ngloden:    %h\n", block, new_block, golden[i]);
 				if (golden[i] !== new_block) begin
-					err_count++;
+					err_count = err_count + 1;
 				end
 			end
 		end

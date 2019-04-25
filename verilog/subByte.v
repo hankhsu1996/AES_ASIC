@@ -1,4 +1,5 @@
 `include "constant.v"
+`timescale 1ns/1ps
 
 module AES_core (
     input          clk   , // Clock
@@ -8,60 +9,31 @@ module AES_core (
 );
 
     function [127:0] subBytes (input [127:0] block);
-        reg [127:0] temp;
 
         begin
             // find 1st hex
-            temp[8*0+7:8*0] = constant.s_box[block[8*0+7:8*0]];
-            temp[8*1+7:8*1] = constant.s_box[block[8*1+7:8*1]];
-            temp[8*2+7:8*2] = constant.s_box[block[8*2+7:8*2]];
-            temp[8*3+7:8*3] = constant.s_box[block[8*3+7:8*3]];
+            subBytes[8*0+7:8*0] = constant.sbox[block[8*0+7:8*0]];
+            subBytes[8*1+7:8*1] = constant.sbox[block[8*1+7:8*1]];
+            subBytes[8*2+7:8*2] = constant.sbox[block[8*2+7:8*2]];
+            subBytes[8*3+7:8*3] = constant.sbox[block[8*3+7:8*3]];
 
-            temp[8*4+7:8*4] = constant.s_box[block[8*4+7:8*4]];
-            temp[8*5+7:8*5] = constant.s_box[block[8*5+7:8*5]];
-            temp[8*6+7:8*6] = constant.s_box[block[8*6+7:8*6]];
-            temp[8*7+7:8*7] = constant.s_box[block[8*7+7:8*7]];
+            subBytes[8*4+7:8*4] = constant.sbox[block[8*4+7:8*4]];
+            subBytes[8*5+7:8*5] = constant.sbox[block[8*5+7:8*5]];
+            subBytes[8*6+7:8*6] = constant.sbox[block[8*6+7:8*6]];
+            subBytes[8*7+7:8*7] = constant.sbox[block[8*7+7:8*7]];
 
-            temp[8*8+7:8*8] = constant.s_box[block[8*8+7:8*8]];
-            temp[8*9+7:8*9] = constant.s_box[block[8*9+7:8*9]];
-            temp[8*10+7:8*10] = constant.s_box[block[8*10+7:8*10]];
-            temp[8*11+7:8*11] = constant.s_box[block[8*11+7:8*11]];
+            subBytes[8*8+7:8*8] = constant.sbox[block[8*8+7:8*8]];
+            subBytes[8*9+7:8*9] = constant.sbox[block[8*9+7:8*9]];
+            subBytes[8*10+7:8*10] = constant.sbox[block[8*10+7:8*10]];
+            subBytes[8*11+7:8*11] = constant.sbox[block[8*11+7:8*11]];
 
-            temp[8*12+7:8*12] = constant.s_box[block[8*12+7:8*12]];
-            temp[8*13+7:8*13] = constant.s_box[block[8*13+7:8*13]];
-            temp[8*14+7:8*14] = constant.s_box[block[8*14+7:8*14]];
-            temp[8*15+7:8*15] = constant.s_box[block[8*15+7:8*15]];
-            subBytes = temp;
+            subBytes[8*12+7:8*12] = constant.sbox[block[8*12+7:8*12]];
+            subBytes[8*13+7:8*13] = constant.sbox[block[8*13+7:8*13]];
+            subBytes[8*14+7:8*14] = constant.sbox[block[8*14+7:8*14]];
+            subBytes[8*15+7:8*15] = constant.sbox[block[8*15+7:8*15]];
         end
     endfunction
-
-    // function [127:0] shiftRow(input [127:0] block);
-    //     reg [127:0] temp;
-    //     begin
-    //         temp[8*0+7:8*0] = constant.s_box[block[8*0+7:8*0]];
-    //         temp[8*1+7:8*1] = constant.s_box[block[8*5+7:8*5]];
-    //         temp[8*2+7:8*2] = constant.s_box[block[8*10+7:8*10]];
-    //         temp[8*3+7:8*3] = constant.s_box[block[8*15+7:8*15]];
-
-    //         temp[8*4+7:8*4] = constant.s_box[block[8*4+7:8*4]];
-    //         temp[8*5+7:8*5] = constant.s_box[block[8*9+7:8*9]];
-    //         temp[8*6+7:8*6] = constant.s_box[block[8*14+7:8*14]];
-    //         temp[8*7+7:8*7] = constant.s_box[block[8*3+7:8*3]];
-
-    //         temp[8*8+7:8*8] = constant.s_box[block[8*8+7:8*8]];
-    //         temp[8*9+7:8*9] = constant.s_box[block[8*13+7:8*13]];
-    //         temp[8*10+7:8*10] = constant.s_box[block[8*2+7:8*2]];
-    //         temp[8*11+7:8*11] = constant.s_box[block[8*7+7:8*7]];
-
-    //         temp[8*12+7:8*12] = constant.s_box[block[8*12+7:8*12]];
-    //         temp[8*13+7:8*13] = constant.s_box[block[8*1+7:8*1]];
-    //         temp[8*14+7:8*14] = constant.s_box[block[8*6+7:8*6]];
-    //         temp[8*15+7:8*15] = constant.s_box[block[8*11+7:8*11]];
-
-    //         shiftRow = temp;
-    //     end
-    // endfunction
-
+    
     assign new_block = subBytes(block);
 
 endmodule

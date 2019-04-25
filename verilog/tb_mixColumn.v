@@ -3,10 +3,11 @@
 `define HALF_CYCLE 1
 `define TEST_LEN 88
 
-module AES_core_tb;
+module AES_core_tb ();
 
 	reg          clk, rst_n;
-	reg  [127:0] block  ;
+	reg  [127:0] block    ;
+	reg  [127:0] round_key;
 	wire [127:0] new_block;
 
 	reg [127:0] mem_data[0:`TEST_LEN-1];
@@ -18,9 +19,10 @@ module AES_core_tb;
 	always #(`HALF_CYCLE) clk = ~clk;
 
 	AES_core aes_core (
-		.clk   (clk   ),
-		.rst_n (rst_n ),
-		.block  (block  ),
+		.clk      (clk      ),
+		.rst_n    (rst_n    ),
+		.round_key(round_key),
+		.block    (block    ),
 		.new_block(new_block)
 	);
 

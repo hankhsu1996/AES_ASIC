@@ -3,6 +3,7 @@
 module AES_core (
     input          clk      , // Clock
     input          rst_n    , // Asynchronous reset active low
+    input  [127:0] round_key,
     input  [127:0] block    ,
     output [127:0] new_block
 );

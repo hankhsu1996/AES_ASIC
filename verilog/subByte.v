@@ -2,9 +2,10 @@
 `timescale 1ns/1ps
 
 module AES_core (
-    input          clk   , // Clock
-    input          rst_n , // Asynchronous reset active low
-    input  [127:0] block  ,
+    input          clk      , // Clock
+    input          rst_n    , // Asynchronous reset active low
+    input  [127:0] round_key,
+    input  [127:0] block    ,
     output [127:0] new_block
 );
 
@@ -33,7 +34,7 @@ module AES_core (
             subBytes[8*15+7:8*15] = constant.sbox[block[8*15+7:8*15]];
         end
     endfunction
-    
+
     assign new_block = subBytes(block);
 
 endmodule

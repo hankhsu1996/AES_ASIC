@@ -1,7 +1,7 @@
-`include "shiftRow.v"
+`include "addRoundKey.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
-`define TEST_LEN 96
+`define TEST_LEN 208
 
 module AES_core_tb ();
 
@@ -11,6 +11,7 @@ module AES_core_tb ();
 	wire [127:0] new_block;
 
 	reg [127:0] mem_data[0:`TEST_LEN-1];
+	reg [127:0] mem_key[0:`TEST_LEN-1];
 	reg [127:0] golden  [0:`TEST_LEN-1];
 
 	integer i, err_count;
@@ -28,8 +29,9 @@ module AES_core_tb ();
 
 	// read from file
 	initial begin
-		$readmemh("./DAT/data_shiftRow.txt", mem_data);
-		$readmemh("./DAT/golden_shiftRow.txt", golden);
+		$readmemh("./DAT/data_addRoundKey.txt", mem_data);
+		$readmemh("./DAT/key_addRoundKey.txt", mem_key);
+		$readmemh("./DAT/golden_addRoundKey.txt", golden);
 	end
 
 	// initialization
@@ -44,11 +46,12 @@ module AES_core_tb ();
 			@(posedge clk) begin
 				rst_n <= 1'b1;
 				block <= mem_data[i];
+				round_key <= mem_key[i];
 			end
 
 			@(negedge clk) begin
-				$display("testing: shiftRow",);
-				$display("block:     %h\nnew_block: %h\ngloden:    %h\n", block, new_block, golden[i]);
+				$display("testing: addRoundKey",);
+				$display("block:     %h\nkey:       %h\nnew_block: %h\ngloden:    %h\n", block, round_key, new_block, golden[i]);
 				if (golden[i] !== new_block) begin
 					err_count = err_count + 1;
 				end

@@ -4,10 +4,18 @@
 module AES_core (
     input          clk      , // Clock
     input          rst_n    , // Asynchronous reset active low
+    input          next     , // Use next to indicate the next request for encipher
+    input          keylen   , // Use keylen to indicate AES128 or AES256, not yet implemented
+    output         round    , // Use round to request the round key
     input  [127:0] round_key,
     input  [127:0] block    ,
-    output [127:0] new_block
+    output [127:0] new_block,
+    output         ready
 );
+
+    // ------------------------------------------------------
+    // ---------------- basic four functions ----------------
+    // ------------------------------------------------------
 
     function [7:0] mixColumn32;
         input [7:0] i1,i2,i3,i4;
@@ -106,6 +114,118 @@ module AES_core (
     endfunction
 
 
+
+    // ------------------------------------------------------
+    // --------------------- reg update ---------------------
+    // ------------------------------------------------------
+
+    // flow:
+    // 1. when reset, set ctrl_reg to 0
+    // 2. when posedge clk, write reg_new into each reg
+    // 3. these will trigger reg update and call the encipher_ctrl, etc.
+
+    always @(posedge clk or negedge rst_n) begin : proc_ctrl_reg
+        if(~rst_n) begin
+            main_ctrl_reg  <= CTRL_IDLE;
+            round_ctrl_reg <= 4'b0;
+            ready_reg      <= 1'b0;
+        end else begin
+            main_ctrl_reg  <= main_ctrl_new;
+            round_ctrl_reg <= round_ctrl_new;
+            ready_reg      <= ready_new;
+        end
+    end
+
+
+    // ------------------------------------------------------
+    // ------------------ encipher control  -----------------
+    // ------------------------------------------------------
+
+    // flow:
+    // 1. in the beginning, main_ctrl_reg should be IDLE
+    // 2. goto case structure: IDLE
+    //    if input "next" is true, start the encryption
+    //    this will set the next state to INIT and reset the round controller to 0
+    // 3. next clk goto case: INIT
+    //    this will set update type to init and trigger round logic to do subByte, mixCol...
+    //    also set round_inc to true so that the counter will start
+    //    set next state to MAIN
+
+
+    // define control state
+    localparam CTRL_IDLE  = 3'h0;
+    localparam CTRL_INIT  = 3'h1;
+    localparam CTRL_MAIN  = 3'h2;
+    localparam CTRL_FINAL = 3'h3;
+
+    // the register to store state information
+    reg [2:0] main_ctrl_reg;
+    reg [2:0] main_ctrl_new;
+    reg       ready_reg    ;
+    reg       ready_new    ;
+
+
+    always @* begin : encipher_ctrl
+
+        // default assignments
+        main_ctrl_new  = CTRL_IDLE;
+        round_ctrl_rst = 1'b0;
+        ready_new      = 1'b0;
+        update_type    = NO_UPDATE;
+
+        case (main_ctrl_reg)
+
+            CTRL_IDLE : begin
+                if (next) begin
+                    main_ctrl_new  = CTRL_INIT;
+                    round_ctrl_rst = 1'b1;
+                end
+            end
+
+            CTRL_INIT : begin
+                round_inc = 1'b1;
+                update_type = INIT_UPDATE;
+                    main_ctrl_new  = CTRL_MAIN;
+            end
+
+            CTRL_MAIN : begin
+            end
+
+            CTRL_FINAL : begin
+            end
+
+            default : begin end
+        endcase // ctrl_reg
+    end
+
+
+    // ------------------------------------------------------
+    // ------------------- round control --------------------
+    // ------------------------------------------------------
+
+    // reg to save round controller information
+    reg [3:0] round_ctrl_reg;
+    reg [3:0] round_ctrl_new;
+    reg       round_ctrl_rst;
+    reg       round_ctrl_inc;
+
+
+    // ------------------------------------------------------
+    // -------------------- round logic ---------------------
+    // ------------------------------------------------------
+
+    // define update type
+    localparam NO_UPDATE    = 3'h0;
+    localparam INIT_UPDATE  = 3'h1;
+    localparam SBOX_UPDATE  = 3'h2;
+    localparam MAIN_UPDATE  = 3'h3;
+    localparam FINAL_UPDATE = 3'h4;
+
+    // the register to indicate what kind of round (init, main and final)
+    reg update_type;
+
+    // always @*
+    //     begin : round_logic
+    //         // TODO
+    //     end
 endmodule
-
-

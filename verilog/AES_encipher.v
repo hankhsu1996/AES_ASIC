@@ -55,29 +55,26 @@ module AES_core (
 
 
     function [127:0] shiftRow(input [127:0] block);
-        reg [127:0] temp;
         begin
-            temp[8*0+7:8*0] = block[8*4+7:8*4];
-            temp[8*1+7:8*1] = block[8*9+7:8*9];
-            temp[8*2+7:8*2] = block[8*14+7:8*14];
-            temp[8*3+7:8*3] = block[8*3+7:8*3];
+            shiftRow[8*0+7:8*0] = block[8*4+7:8*4];
+            shiftRow[8*1+7:8*1] = block[8*9+7:8*9];
+            shiftRow[8*2+7:8*2] = block[8*14+7:8*14];
+            shiftRow[8*3+7:8*3] = block[8*3+7:8*3];
 
-            temp[8*4+7:8*4] = block[8*8+7:8*8];
-            temp[8*5+7:8*5] = block[8*13+7:8*13];
-            temp[8*6+7:8*6] = block[8*2+7:8*2];
-            temp[8*7+7:8*7] = block[8*7+7:8*7];
+            shiftRow[8*4+7:8*4] = block[8*8+7:8*8];
+            shiftRow[8*5+7:8*5] = block[8*13+7:8*13];
+            shiftRow[8*6+7:8*6] = block[8*2+7:8*2];
+            shiftRow[8*7+7:8*7] = block[8*7+7:8*7];
 
-            temp[8*8+7:8*8] = block[8*12+7:8*12];
-            temp[8*9+7:8*9] = block[8*1+7:8*1];
-            temp[8*10+7:8*10] = block[8*6+7:8*6];
-            temp[8*11+7:8*11] = block[8*11+7:8*11];
+            shiftRow[8*8+7:8*8] = block[8*12+7:8*12];
+            shiftRow[8*9+7:8*9] = block[8*1+7:8*1];
+            shiftRow[8*10+7:8*10] = block[8*6+7:8*6];
+            shiftRow[8*11+7:8*11] = block[8*11+7:8*11];
 
-            temp[8*12+7:8*12] = block[8*0+7:8*0];
-            temp[8*13+7:8*13] = block[8*5+7:8*5];
-            temp[8*14+7:8*14] = block[8*10+7:8*10];
-            temp[8*15+7:8*15] = block[8*15+7:8*15];
-
-            shiftRow = temp;
+            shiftRow[8*12+7:8*12] = block[8*0+7:8*0];
+            shiftRow[8*13+7:8*13] = block[8*5+7:8*5];
+            shiftRow[8*14+7:8*14] = block[8*10+7:8*10];
+            shiftRow[8*15+7:8*15] = block[8*15+7:8*15];
         end
     endfunction
 
@@ -158,6 +155,12 @@ module AES_core (
     localparam CTRL_MAIN  = 3'h2;
     localparam CTRL_FINAL = 3'h3;
 
+    localparam AES_128_BIT_KEY = 1'h0;
+    localparam AES_256_BIT_KEY = 1'h1;
+
+    localparam AES128_ROUNDS = 4'ha;
+    localparam AES256_ROUNDS = 4'he;
+
     // the register to store state information
     reg [2:0] main_ctrl_reg;
     reg [2:0] main_ctrl_new;
@@ -166,37 +169,47 @@ module AES_core (
 
 
     always @* begin : encipher_ctrl
+        reg [3:0] num_rounds;
 
         // default assignments
         main_ctrl_new  = CTRL_IDLE;
-        round_ctrl_rst = 1'b0;
         ready_new      = 1'b0;
         update_type    = NO_UPDATE;
+        round_ctrl_inc = 1'b0;
 
+        // get num_rounds
+        if (keylen == AES_256_BIT_KEY) begin
+            num_rounds = AES256_ROUNDS;
+        end else begin
+            num_rounds = AES128_ROUNDS;
+        end
+
+        // main state machine
         case (main_ctrl_reg)
-
             CTRL_IDLE : begin
                 if (next) begin
-                    main_ctrl_new  = CTRL_INIT;
-                    round_ctrl_rst = 1'b1;
+                    main_ctrl_new = CTRL_INIT;
                 end
             end
-
             CTRL_INIT : begin
-                round_inc = 1'b1;
-                update_type = INIT_UPDATE;
-                    main_ctrl_new  = CTRL_MAIN;
+                main_ctrl_new  = CTRL_MAIN;
+                round_ctrl_inc = 1'b1;
+                update_type    = INIT_UPDATE;
             end
-
             CTRL_MAIN : begin
+                round_ctrl_inc = 1'b1;
+                if (round_ctrl_reg < num_rounds) begin
+                    main_ctrl_new = CTRL_MAIN;
+                    update_type   = MAIN_UPDATE;
+                end else begin
+                    main_ctrl_new = CTRL_IDLE;
+                    update_type   = FINAL_UPDATE;
+                    ready_new     = 1'b1;
+                end
             end
-
-            CTRL_FINAL : begin
-            end
-
             default : begin end
         endcase // ctrl_reg
-    end
+    end // encipher_ctrl
 
 
     // ------------------------------------------------------
@@ -206,8 +219,15 @@ module AES_core (
     // reg to save round controller information
     reg [3:0] round_ctrl_reg;
     reg [3:0] round_ctrl_new;
-    reg       round_ctrl_rst;
     reg       round_ctrl_inc;
+
+    always @(*) begin : round_ctrl
+        // default assignments
+        round_ctrl_new = 4'h0;
+        if (round_ctrl_inc) begin
+            round_ctrl_new = round_ctrl_reg + 1'b1;
+        end
+    end // round_ctrl
 
 
     // ------------------------------------------------------
@@ -224,8 +244,7 @@ module AES_core (
     // the register to indicate what kind of round (init, main and final)
     reg update_type;
 
-    // always @*
-    //     begin : round_logic
-    //         // TODO
-    //     end
+    always @(*) begin : round_logic
+
+    end
 endmodule

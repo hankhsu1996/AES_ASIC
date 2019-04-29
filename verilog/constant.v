@@ -3,7 +3,7 @@
 module constant ();
 	wire [7:0] sbox    [255:0];
 	wire [7:0] inv_sbox[255:0];
-	
+
 	assign sbox[8'h00] = 8'h63;
 	assign sbox[8'h01] = 8'h7c;
 	assign sbox[8'h02] = 8'h77;

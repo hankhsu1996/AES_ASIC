@@ -1,7 +1,7 @@
 `include "constant.v"
 `timescale 1ns/1ps
 
-module AES_core (
+module AES_encipher (
     input          clk      , // Clock
     input          rst_n    , // Asynchronous reset active low
     input          next     , // Use next to indicate the next request for encipher
@@ -245,6 +245,6 @@ module AES_core (
     reg update_type;
 
     always @(*) begin : round_logic
-
+        reg [127:0] 
     end
 endmodule

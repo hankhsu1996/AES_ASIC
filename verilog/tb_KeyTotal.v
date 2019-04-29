@@ -1,17 +1,17 @@
-`include "keytotal.v"
+`include "KeyTotal.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
 `define TEST_LEN 11
 
 module AES_core_tb ();
 
-	reg    clk, rst_n;
-	reg  [127:0]key    ;
-	reg  [3:0] times;
+	reg          clk, rst_n;
+	reg  [127:0] key   ;
+	reg  [  3:0] times ;
 	wire [127:0] keyout;
 
 	reg [127:0] mem_data[0:`TEST_LEN-1];
-	reg [3:0] mem_key[0:`TEST_LEN-1];
+	reg [  3:0] mem_key [0:`TEST_LEN-1];
 	reg [127:0] golden  [0:`TEST_LEN-1];
 
 	integer i, err_count;
@@ -19,19 +19,19 @@ module AES_core_tb ();
 	// generate clock
 	always #(`HALF_CYCLE) clk = ~clk;
 
-	Keytotal a1(
-		.clk      (clk   ),
-		.rst_n    (rst_n),
-		.times     (times),
-		.key    (key   ),
-		.keyout (keyout)
+	KeyTotal a1 (
+		.clk   (clk   ),
+		.rst_n (rst_n ),
+		.times (times ),
+		.key   (key   ),
+		.keyout(keyout)
 	);
 
 	// read from file
 	initial begin
-		$readmemh("./inputkey.txt", mem_data);
-		$readmemb("./rc.txt", mem_key);
-		$readmemh("./outputkey.txt", golden);
+		$readmemh("./DAT/inputkey.txt", mem_data);
+		$readmemb("./DAT/rc.txt", mem_key);
+		$readmemh("./DAT/outputkey.txt", golden);
 	end
 
 	// initialization
@@ -50,9 +50,9 @@ module AES_core_tb ();
 			end
 
 			@(negedge clk) begin
-				$display("testing: addRoundKey",);
-				$display("key:     %h\ntimes:       %h\nkeyout: %h\ngloden:    %h\n", key, times, keyout, golden[i]);
-				if (golden[i] !== keyout) begin
+				$display("testing: key generation",);
+				$display("key:    %h\ntimes:  %h\nkeyout: %h\ngloden: %h\n", key, times, keyout, golden[i]);
+				if (golden[i] !== keyout || ^keyout === 1'bx) begin
 					err_count = err_count + 1;
 				end
 			end

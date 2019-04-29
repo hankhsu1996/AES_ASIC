@@ -43,7 +43,7 @@
 # Python module imports.
 #-------------------------------------------------------------------
 import sys
-
+import random
 
 #-------------------------------------------------------------------
 # Constants.
@@ -960,6 +960,17 @@ def main():
     test_aes()
 
 
+def roundKeyTbGen():
+
+    test_num = 100
+    for i in range(test_num):
+        key = (random.getrandbits(32), random.getrandbits(32),
+               random.getrandbits(32), random.getrandbits(32))
+        block = (random.getrandbits(32), random.getrandbits(32),
+                 random.getrandbits(32), random.getrandbits(32))
+        aes_encipher_block(key, block)
+
+
 #-------------------------------------------------------------------
 # __name__
 # Python thingy which allows the file to be run standalone as
@@ -968,6 +979,7 @@ def main():
 if __name__ == "__main__":
     # Run the main function.
     sys.exit(main())
+    # sys.exit(roundKeyTbGen())
 
 #=======================================================================
 # EOF aes_key_gen.py

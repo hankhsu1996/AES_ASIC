@@ -104,9 +104,9 @@ module AES_encipher (
     endfunction
 
 
-    function [127:0] add_round_key (input [127:0] block, input [127:0] key);
+    function [127:0] addRoundKey (input [127:0] block, input [127:0] key);
         begin
-            add_round_key = block ^ key;
+            addRoundKey = block ^ key;
         end
     endfunction
 
@@ -123,10 +123,12 @@ module AES_encipher (
 
     always @(posedge clk or negedge rst_n) begin : proc_ctrl_reg
         if(~rst_n) begin
+            block_reg      <= 128'b0;
             main_ctrl_reg  <= CTRL_IDLE;
             round_ctrl_reg <= 4'b0;
             ready_reg      <= 1'b0;
         end else begin
+            block_reg      <= block_new;
             main_ctrl_reg  <= main_ctrl_new;
             round_ctrl_reg <= round_ctrl_new;
             ready_reg      <= ready_new;
@@ -237,14 +239,39 @@ module AES_encipher (
     // define update type
     localparam NO_UPDATE    = 3'h0;
     localparam INIT_UPDATE  = 3'h1;
-    localparam SBOX_UPDATE  = 3'h2;
-    localparam MAIN_UPDATE  = 3'h3;
-    localparam FINAL_UPDATE = 3'h4;
+    localparam MAIN_UPDATE  = 3'h2;
+    localparam FINAL_UPDATE = 3'h3;
 
     // the register to indicate what kind of round (init, main and final)
-    reg update_type;
+    reg         update_type;
+    reg [127:0] block_reg  ;
+    reg [127:0] block_new  ;
 
     always @(*) begin : round_logic
-        reg [127:0] 
-    end
-endmodule
+
+        // just for clear denotation
+        reg [127:0] shiftRow_block, mixColumn_block;
+        reg [127:0] addRoundKey_block, init_addRoundKey_block, final_addRoundKey_block;
+
+        shiftRow_block          = shiftRow(block_reg);
+        mixColumn_block         = mixColumn(shiftRow_block);
+        addRoundKey_block       = addRoundKey(mixColumn_block, round_key);
+        init_addRoundKey_block  = addRoundKey(block, round_key);
+        final_addRoundKey_block = addRoundKey(shiftRow_block, round_key);
+
+        case (update_type)
+            NO_UPDATE   : begin end
+            INIT_UPDATE : begin
+                block_new = init_addRoundKey_block;
+            end
+            MAIN_UPDATE : begin
+                block_new = addRoundKey_block;
+            end
+            FINAL_UPDATE : begin
+                block_new = final_addRoundKey_block;
+            end
+            default : begin end
+        endcase // update_type
+    end // round_logic
+
+endmodule // AES_encipher

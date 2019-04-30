@@ -169,6 +169,8 @@ module AES_encipher (
     reg       ready_reg    ;
     reg       ready_new    ;
 
+    assign ready = ready_reg;
+
 
     always @* begin : encipher_ctrl
         reg [3:0] num_rounds;
@@ -223,6 +225,9 @@ module AES_encipher (
     reg [3:0] round_ctrl_new;
     reg       round_ctrl_inc;
 
+    // Concurrent connectivity for ports
+    assign round = round_ctrl_reg;
+
     always @(*) begin : round_ctrl
         // default assignments
         round_ctrl_new = 4'h0;
@@ -246,6 +251,8 @@ module AES_encipher (
     reg         update_type;
     reg [127:0] block_reg  ;
     reg [127:0] block_new  ;
+
+    assign new_block = block_reg;
 
     always @(*) begin : round_logic
 

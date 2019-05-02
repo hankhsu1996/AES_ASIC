@@ -6,7 +6,7 @@
 module AES_key_memory (
     input          clk   , // Clock
     input          rst_n , // Asynchronous reset active low
-    input  [  3:0] times ,
+    input  [  3:0] round ,
     input  [127:0] key   ,
     output [127:0] keyout
 );
@@ -28,7 +28,7 @@ module AES_key_memory (
     KeyGeneration a10 (4'b1001,keytem[9],keytem[10]);
 
     always @(*) begin
-        keyout <= keytem[times];
+        keyout <= keytem[round];
     end
 endmodule // KeyTotal
 

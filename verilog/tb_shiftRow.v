@@ -32,12 +32,13 @@ module AES_core_tb ();
 		$readmemh("./DAT/golden_shiftRow.txt", golden);
 	end
 
+
 	// initialization
 	initial begin
 		clk = 1'b1;
 		rst_n = 1'b1;
 		@(posedge clk)
-			rst_n<= 1'b0;
+			rst_n <= 1'b0;
 
 		err_count = 0;
 		for (i = 0; i < `TEST_LEN; i = i + 1) begin

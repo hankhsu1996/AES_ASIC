@@ -6,12 +6,56 @@ module AES_encipher (
     input          rst_n    , // Asynchronous reset active low
     input          next     , // Use next to indicate the next request for encipher
     input          keylen   , // Use keylen to indicate AES128 or AES256, not yet implemented
-    output         round    , // Use round to request the round key
+    output [  3:0] round    , // Use round to request the round key
     input  [127:0] round_key,
     input  [127:0] block    ,
     output [127:0] new_block,
     output         ready
 );
+
+    // ------------------------------------------------------
+    // ------------------- all parameters -------------------
+    // ------------------------------------------------------
+
+    // define control state
+    localparam CTRL_IDLE  = 3'h0;
+    localparam CTRL_INIT  = 3'h1;
+    localparam CTRL_MAIN  = 3'h2;
+    localparam CTRL_FINAL = 3'h3;
+
+    localparam AES_128_BIT_KEY = 1'h0;
+    localparam AES_256_BIT_KEY = 1'h1;
+
+    localparam AES128_ROUNDS = 4'ha;
+    localparam AES256_ROUNDS = 4'he;
+
+    // define update type
+    localparam NO_UPDATE    = 3'h0;
+    localparam INIT_UPDATE  = 3'h1;
+    localparam MAIN_UPDATE  = 3'h2;
+    localparam FINAL_UPDATE = 3'h3;
+
+
+    // the register to store control state information
+    reg [2:0] main_ctrl_reg;
+    reg [2:0] main_ctrl_new;
+    reg       ready_reg    ;
+    reg       ready_new    ;
+
+    // reg to save round controller information
+    reg [3:0] round_ctrl_reg;
+    reg [3:0] round_ctrl_new;
+    reg       round_ctrl_inc;
+
+    // the register to indicate what kind of round (init, main and final)
+    reg [  1:0] update_type;
+    reg [127:0] block_reg  ;
+    reg [127:0] block_new  ;
+
+    // Concurrent connectivity for ports
+    assign ready     = ready_reg;
+    assign round     = round_ctrl_reg;
+    assign new_block = block_reg;
 
     // ------------------------------------------------------
     // ---------------- basic four functions ----------------
@@ -50,6 +94,7 @@ module AES_encipher (
             mixColumn[23:16]   = mixColumn32 (block[23:16],block[15:8],block[7:0],block[31:24]);
             mixColumn[15:8]    = mixColumn32 (block[15:8],block[7:0],block[31:24],block[23:16]);
             mixColumn[7:0]     = mixColumn32 (block[7:0],block[31:24],block[23:16],block[15:8]);
+            // $display("---- mixCols:  %h ----", mixColumn);
         end
     endfunction
 
@@ -75,6 +120,7 @@ module AES_encipher (
             shiftRow[8*13+7:8*13] = block[8*5+7:8*5];
             shiftRow[8*14+7:8*14] = block[8*10+7:8*10];
             shiftRow[8*15+7:8*15] = block[8*15+7:8*15];
+            // $display("---- shiftRow: %h ----", shiftRow);
         end
     endfunction
 
@@ -100,6 +146,7 @@ module AES_encipher (
             subBytes[8*13+7:8*13] = constant.sbox[block[8*13+7:8*13]];
             subBytes[8*14+7:8*14] = constant.sbox[block[8*14+7:8*14]];
             subBytes[8*15+7:8*15] = constant.sbox[block[8*15+7:8*15]];
+            // $display("---- subBytes: %h ----", subBytes);
         end
     endfunction
 
@@ -107,6 +154,7 @@ module AES_encipher (
     function [127:0] addRoundKey (input [127:0] block, input [127:0] key);
         begin
             addRoundKey = block ^ key;
+            // $display("---- addKey  : %h ----", addRoundKey);
         end
     endfunction
 
@@ -151,27 +199,6 @@ module AES_encipher (
     //    set next state to MAIN
 
 
-    // define control state
-    localparam CTRL_IDLE  = 3'h0;
-    localparam CTRL_INIT  = 3'h1;
-    localparam CTRL_MAIN  = 3'h2;
-    localparam CTRL_FINAL = 3'h3;
-
-    localparam AES_128_BIT_KEY = 1'h0;
-    localparam AES_256_BIT_KEY = 1'h1;
-
-    localparam AES128_ROUNDS = 4'ha;
-    localparam AES256_ROUNDS = 4'he;
-
-    // the register to store state information
-    reg [2:0] main_ctrl_reg;
-    reg [2:0] main_ctrl_new;
-    reg       ready_reg    ;
-    reg       ready_new    ;
-
-    assign ready = ready_reg;
-
-
     always @* begin : encipher_ctrl
         reg [3:0] num_rounds;
 
@@ -188,11 +215,13 @@ module AES_encipher (
             num_rounds = AES128_ROUNDS;
         end
 
+
         // main state machine
         case (main_ctrl_reg)
             CTRL_IDLE : begin
                 if (next) begin
                     main_ctrl_new = CTRL_INIT;
+                    update_type   = NO_UPDATE;
                 end
             end
             CTRL_INIT : begin
@@ -220,14 +249,6 @@ module AES_encipher (
     // ------------------- round control --------------------
     // ------------------------------------------------------
 
-    // reg to save round controller information
-    reg [3:0] round_ctrl_reg;
-    reg [3:0] round_ctrl_new;
-    reg       round_ctrl_inc;
-
-    // Concurrent connectivity for ports
-    assign round = round_ctrl_reg;
-
     always @(*) begin : round_ctrl
         // default assignments
         round_ctrl_new = 4'h0;
@@ -241,33 +262,31 @@ module AES_encipher (
     // -------------------- round logic ---------------------
     // ------------------------------------------------------
 
-    // define update type
-    localparam NO_UPDATE    = 3'h0;
-    localparam INIT_UPDATE  = 3'h1;
-    localparam MAIN_UPDATE  = 3'h2;
-    localparam FINAL_UPDATE = 3'h3;
-
-    // the register to indicate what kind of round (init, main and final)
-    reg         update_type;
-    reg [127:0] block_reg  ;
-    reg [127:0] block_new  ;
-
-    assign new_block = block_reg;
-
     always @(*) begin : round_logic
 
         // just for clear denotation
-        reg [127:0] shiftRow_block, mixColumn_block;
+        reg [127:0] subBytes_block, shiftRow_block, mixColumn_block;
         reg [127:0] addRoundKey_block, init_addRoundKey_block, final_addRoundKey_block;
 
-        shiftRow_block          = shiftRow(block_reg);
+        subBytes_block          = subBytes(block_reg);
+        shiftRow_block          = shiftRow(subBytes_block);
         mixColumn_block         = mixColumn(shiftRow_block);
         addRoundKey_block       = addRoundKey(mixColumn_block, round_key);
         init_addRoundKey_block  = addRoundKey(block, round_key);
         final_addRoundKey_block = addRoundKey(shiftRow_block, round_key);
 
+        // $display("in last round, block =   %h", block_reg);
+        // $display("subBytes_block:          %h", subBytes_block);
+        // $display("shiftRow_block:          %h", shiftRow_block);
+        // $display("mixColumn_block:         %h", mixColumn_block);
+        // $display("addRoundKey_block:       %h", addRoundKey_block);
+        // $display("init_addRoundKey_block:  %h", init_addRoundKey_block);
+        // $display("final_addRoundKey_block: %h\n", final_addRoundKey_block);
+
         case (update_type)
-            NO_UPDATE   : begin end
+            NO_UPDATE   : begin
+                block_new = block_reg;
+            end
             INIT_UPDATE : begin
                 block_new = init_addRoundKey_block;
             end
@@ -280,5 +299,6 @@ module AES_encipher (
             default : begin end
         endcase // update_type
     end // round_logic
+
 
 endmodule // AES_encipher

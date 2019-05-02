@@ -1,7 +1,8 @@
 `include "AES_encipher.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
-`define TEST_LEN 100
+`define TEST_LEN_128 100
+`define TEST_LEN_256 100
 
 module tb_AES_encipher ();
 
@@ -17,11 +18,15 @@ module tb_AES_encipher ();
 
 	wire ready; // indicate state machine go to finish
 
-	reg [127:0] mem_block    [   0:`TEST_LEN-1];
-	reg [127:0] mem_round_key[0:`TEST_LEN*11-1];
-	reg [127:0] golden       [   0:`TEST_LEN-1];
+	reg [127:0] mem_block_128    [   0:`TEST_LEN_128-1];
+	reg [127:0] mem_round_key_128[0:`TEST_LEN_128*11-1];
+	reg [127:0] golden_128       [   0:`TEST_LEN_128-1];
 
-	integer i, counter, err_count;
+	reg [127:0] mem_block_256    [   0:`TEST_LEN_256-1];
+	reg [127:0] mem_round_key_256[0:`TEST_LEN_256*15-1];
+	reg [127:0] golden_256       [   0:`TEST_LEN_256-1];
+
+	integer i, counter, err_count_128, err_count_256;
 
 	// generate clock
 	always #(`HALF_CYCLE) clk = ~clk;
@@ -40,25 +45,29 @@ module tb_AES_encipher ();
 
 	// read from file
 	initial begin
-		$readmemh("./DAT/data_AES_encipher.txt", mem_block);
-		$readmemh("./DAT/data_keyGen128.txt", mem_round_key);
-		$readmemh("./DAT/golden_AES_encipher.txt", golden);
+		$readmemh("./DAT/data_AES128_encipher.txt", mem_block_128);
+		$readmemh("./DAT/data_keyGen128.txt", mem_round_key_128);
+		$readmemh("./DAT/golden_AES128_encipher.txt", golden_128);
+		$readmemh("./DAT/data_AES256_encipher.txt", mem_block_256);
+		$readmemh("./DAT/data_keyGen256.txt", mem_round_key_256);
+		$readmemh("./DAT/golden_AES256_encipher.txt", golden_256);
 	end
 
-	// initialization
 	initial begin
+
+		// AES128
 		clk = 1'b1;
 		rst_n = 1'b1;
-		keylen = 1'h0; // AES128
+		keylen = 1'h0;
 
 		@(posedge clk)
 			rst_n <= 1'b0;
 
-		err_count = 0;
-		for (i = 0; i < `TEST_LEN; i = i + 1) begin
+		err_count_128 = 0;
+		for (i = 0; i < `TEST_LEN_128; i = i + 1) begin
 			@(posedge clk) begin
 				rst_n <= 1'b1;
-				block <= mem_block[i];
+				block <= mem_block_128[i];
 				next <= 1'b1;
 				counter = 0;
 			end
@@ -67,17 +76,17 @@ module tb_AES_encipher ();
 				@(posedge clk) begin
 					next = 1'b0;
 					case (counter)
-						0: begin round_key = mem_round_key[i*11]; end
-						1: begin round_key = mem_round_key[i*11+1]; end
-						2: begin round_key = mem_round_key[i*11+2]; end
-						3: begin round_key = mem_round_key[i*11+3]; end
-						4: begin round_key = mem_round_key[i*11+4]; end
-						5: begin round_key = mem_round_key[i*11+5]; end
-						6: begin round_key = mem_round_key[i*11+6]; end
-						7: begin round_key = mem_round_key[i*11+7]; end
-						8: begin round_key = mem_round_key[i*11+8]; end
-						9: begin round_key = mem_round_key[i*11+9]; end
-						10: begin round_key = mem_round_key[i*11+10]; end
+						0: begin round_key = mem_round_key_128[i*11]; end
+						1: begin round_key = mem_round_key_128[i*11+1]; end
+						2: begin round_key = mem_round_key_128[i*11+2]; end
+						3: begin round_key = mem_round_key_128[i*11+3]; end
+						4: begin round_key = mem_round_key_128[i*11+4]; end
+						5: begin round_key = mem_round_key_128[i*11+5]; end
+						6: begin round_key = mem_round_key_128[i*11+6]; end
+						7: begin round_key = mem_round_key_128[i*11+7]; end
+						8: begin round_key = mem_round_key_128[i*11+8]; end
+						9: begin round_key = mem_round_key_128[i*11+9]; end
+						10: begin round_key = mem_round_key_128[i*11+10]; end
 					endcase // counter
 				end
 
@@ -94,23 +103,98 @@ module tb_AES_encipher ();
 			end
 
 			// the encipher is ready
-			@(negedge clk) begin : count_err
+			@(negedge clk) begin : count_err_128
 				$display("result: %h\n", new_block);
-				if (golden[i] !== new_block) begin
-					err_count = err_count + 1;
+				if (golden_128[i] !== new_block) begin
+					err_count_128 = err_count_128 + 1;
 				end
-			end // count_err
+			end // count_err_128
 
-			// #(`HALF_CYCLE*4);
 		end // for loop
 
-		if (err_count != 0) begin
-			$display("error count: %d", err_count);
+		
+
+
+
+
+		// AES256
+		clk = 1'b1;
+		rst_n = 1'b1;
+		keylen = 1'h1;
+
+		@(posedge clk)
+			rst_n <= 1'b0;
+
+		err_count_256 = 0;
+		for (i = 0; i < `TEST_LEN_256; i = i + 1) begin
+			@(posedge clk) begin
+				rst_n <= 1'b1;
+				block <= mem_block_256[i];
+				next <= 1'b1;
+				counter = 0;
+			end
+
+			while (ready == 1'b0) begin
+				@(posedge clk) begin
+					next = 1'b0;
+					case (counter)
+						0: begin round_key = mem_round_key_256[i*15]; end
+						1: begin round_key = mem_round_key_256[i*15+1]; end
+						2: begin round_key = mem_round_key_256[i*15+2]; end
+						3: begin round_key = mem_round_key_256[i*15+3]; end
+						4: begin round_key = mem_round_key_256[i*15+4]; end
+						5: begin round_key = mem_round_key_256[i*15+5]; end
+						6: begin round_key = mem_round_key_256[i*15+6]; end
+						7: begin round_key = mem_round_key_256[i*15+7]; end
+						8: begin round_key = mem_round_key_256[i*15+8]; end
+						9: begin round_key = mem_round_key_256[i*15+9]; end
+						10: begin round_key = mem_round_key_256[i*15+10]; end
+						11: begin round_key = mem_round_key_256[i*15+11]; end
+						12: begin round_key = mem_round_key_256[i*15+12]; end
+						13: begin round_key = mem_round_key_256[i*15+13]; end
+						14: begin round_key = mem_round_key_256[i*15+14]; end
+					endcase // counter
+				end
+
+				@(negedge clk) begin
+					if (counter == 0) begin
+						$display("start testing encipher.\nin the initial round:\nblock in: %h\nkey in:   %h\n", block, round_key);
+					end else begin
+						$display("in round %d:", round);
+						$display("key in:    %h\nblock out: %h\nready: %b\n", round_key, new_block, ready);
+					end
+
+				end
+				counter = counter + 1;
+			end
+
+			// the encipher is ready
+			@(negedge clk) begin : count_err_256
+				$display("result: %h\n", new_block);
+				if (golden_256[i] !== new_block) begin
+					err_count_256 = err_count_256 + 1;
+				end
+			end // count_err_256
+
+		end // for loop
+
+		
+
+
+		if (err_count_128 != 0) begin
+			$display("error count: %d for AES128", err_count_128);
 		end else begin
-			$display("pass all the tests");
+			$display("pass all the tests for AES128");
+		end
+
+		if (err_count_256 != 0) begin
+			$display("error count: %d for AES256", err_count_256);
+		end else begin
+			$display("pass all the tests for AES256");
 		end
 
 		$finish;
 	end
+
 
 endmodule // tb_AES_encipher

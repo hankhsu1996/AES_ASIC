@@ -965,6 +965,8 @@ def roundKeyTbGen():
     test_num = 100
     for i in range(test_num):
         key = (random.getrandbits(32), random.getrandbits(32),
+               random.getrandbits(32), random.getrandbits(32),
+               random.getrandbits(32), random.getrandbits(32),
                random.getrandbits(32), random.getrandbits(32))
         block = (random.getrandbits(32), random.getrandbits(32),
                  random.getrandbits(32), random.getrandbits(32))

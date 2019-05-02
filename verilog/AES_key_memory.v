@@ -3,7 +3,7 @@
 `include "constant.v"
 
 
-module KeyTotal (
+module AES_key_memory (
     input          clk   , // Clock
     input          rst_n , // Asynchronous reset active low
     input  [  3:0] times ,

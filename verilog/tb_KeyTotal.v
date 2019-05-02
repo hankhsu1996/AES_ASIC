@@ -1,4 +1,4 @@
-`include "KeyTotal.v"
+`include "AES_key_memory.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
 `define TEST_LEN 11
@@ -19,7 +19,7 @@ module AES_core_tb ();
 	// generate clock
 	always #(`HALF_CYCLE) clk = ~clk;
 
-	KeyTotal a1 (
+	AES_key_memory a1 (
 		.clk   (clk   ),
 		.rst_n (rst_n ),
 		.times (times ),

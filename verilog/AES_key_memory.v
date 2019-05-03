@@ -27,7 +27,7 @@ module AES_key_memory (
     KeyGeneration a9 (4'b1000,keytem[8],keytem[9]);
     KeyGeneration a10 (4'b1001,keytem[9],keytem[10]);
 
-    always @(*) begin
+    always @(posedge clk) begin
         keyout <= keytem[round];
     end
 endmodule // KeyTotal

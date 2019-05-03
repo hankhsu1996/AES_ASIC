@@ -980,8 +980,8 @@ def roundKeyTbGen():
 #-------------------------------------------------------------------
 if __name__ == "__main__":
     # Run the main function.
-    # sys.exit(main())
-    sys.exit(roundKeyTbGen())
+    sys.exit(main())
+    # sys.exit(roundKeyTbGen())
 
 #=======================================================================
 # EOF aes_key_gen.py

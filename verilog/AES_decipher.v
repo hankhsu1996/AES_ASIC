@@ -45,7 +45,7 @@ module AES_decipher (
     // reg to save round controller information
     reg [3:0] round_ctrl_reg;
     reg [3:0] round_ctrl_new;
-    reg       round_ctrl_inc;
+    reg       round_ctrl_dec;
 
     // the register to indicate what kind of round (init, main and final)
     reg [  1:0] update_type;
@@ -112,50 +112,51 @@ module AES_decipher (
 
     function [127:0] inv_shiftRow(input [127:0] block);
         begin
-            shiftRow[8*0+7:8*0] = block[8*12+7:8*12];
-            shiftRow[8*1+7:8*1] = block[8*9+7:8*9];
-            shiftRow[8*2+7:8*2] = block[8*6+7:8*6];
-            shiftRow[8*3+7:8*3] = block[8*3+7:8*3];
+            inv_shiftRow[8*0+7:8*0] = block[8*12+7:8*12];
+            inv_shiftRow[8*1+7:8*1] = block[8*9+7:8*9];
+            inv_shiftRow[8*2+7:8*2] = block[8*6+7:8*6];
+            inv_shiftRow[8*3+7:8*3] = block[8*3+7:8*3];
 
-            shiftRow[8*4+7:8*4] = block[8*0+7:8*0];
-            shiftRow[8*5+7:8*5] = block[8*13+7:8*13];
-            shiftRow[8*6+7:8*6] = block[8*10+7:8*10];
-            shiftRow[8*7+7:8*7] = block[8*7+7:8*7];
+            inv_shiftRow[8*4+7:8*4] = block[8*0+7:8*0];
+            inv_shiftRow[8*5+7:8*5] = block[8*13+7:8*13];
+            inv_shiftRow[8*6+7:8*6] = block[8*10+7:8*10];
+            inv_shiftRow[8*7+7:8*7] = block[8*7+7:8*7];
 
-            shiftRow[8*8+7:8*8] = block[8*4+7:8*4];
-            shiftRow[8*9+7:8*9] = block[8*1+7:8*1];
-            shiftRow[8*10+7:8*10] = block[8*14+7:8*14];
-            shiftRow[8*11+7:8*11] = block[8*11+7:8*11];
+            inv_shiftRow[8*8+7:8*8] = block[8*4+7:8*4];
+            inv_shiftRow[8*9+7:8*9] = block[8*1+7:8*1];
+            inv_shiftRow[8*10+7:8*10] = block[8*14+7:8*14];
+            inv_shiftRow[8*11+7:8*11] = block[8*11+7:8*11];
 
-            shiftRow[8*12+7:8*12] = block[8*8+7:8*8];
-            shiftRow[8*13+7:8*13] = block[8*5+7:8*5];
-            shiftRow[8*14+7:8*14] = block[8*2+7:8*2];
-            shiftRow[8*15+7:8*15] = block[8*15+7:8*15];
+            inv_shiftRow[8*12+7:8*12] = block[8*8+7:8*8];
+            inv_shiftRow[8*13+7:8*13] = block[8*5+7:8*5];
+            inv_shiftRow[8*14+7:8*14] = block[8*2+7:8*2];
+            inv_shiftRow[8*15+7:8*15] = block[8*15+7:8*15];
         end
     endfunction
 
 
     function [127:0] inv_subBytes (input [127:0] block);
+
         begin
-            subBytes[8*0+7:8*0] = constant.inv_sbox[block[8*0+7:8*0]];
-            subBytes[8*1+7:8*1] = constant.inv_sbox[block[8*1+7:8*1]];
-            subBytes[8*2+7:8*2] = constant.inv_sbox[block[8*2+7:8*2]];
-            subBytes[8*3+7:8*3] = constant.inv_sbox[block[8*3+7:8*3]];
+            inv_subBytes[8*0+7:8*0] = constant.inv_sbox[block[8*0+7:8*0]];
+            inv_subBytes[8*1+7:8*1] = constant.inv_sbox[block[8*1+7:8*1]];
+            inv_subBytes[8*2+7:8*2] = constant.inv_sbox[block[8*2+7:8*2]];
+            inv_subBytes[8*3+7:8*3] = constant.inv_sbox[block[8*3+7:8*3]];
 
-            subBytes[8*4+7:8*4] = constant.inv_sbox[block[8*4+7:8*4]];
-            subBytes[8*5+7:8*5] = constant.inv_sbox[block[8*5+7:8*5]];
-            subBytes[8*6+7:8*6] = constant.inv_sbox[block[8*6+7:8*6]];
-            subBytes[8*7+7:8*7] = constant.inv_sbox[block[8*7+7:8*7]];
+            inv_subBytes[8*4+7:8*4] = constant.inv_sbox[block[8*4+7:8*4]];
+            inv_subBytes[8*5+7:8*5] = constant.inv_sbox[block[8*5+7:8*5]];
+            inv_subBytes[8*6+7:8*6] = constant.inv_sbox[block[8*6+7:8*6]];
+            inv_subBytes[8*7+7:8*7] = constant.inv_sbox[block[8*7+7:8*7]];
 
-            subBytes[8*8+7:8*8] = constant.inv_sbox[block[8*8+7:8*8]];
-            subBytes[8*9+7:8*9] = constant.inv_sbox[block[8*9+7:8*9]];
-            subBytes[8*10+7:8*10] = constant.inv_sbox[block[8*10+7:8*10]];
-            subBytes[8*11+7:8*11] = constant.inv_sbox[block[8*11+7:8*11]];
+            inv_subBytes[8*8+7:8*8] = constant.inv_sbox[block[8*8+7:8*8]];
+            inv_subBytes[8*9+7:8*9] = constant.inv_sbox[block[8*9+7:8*9]];
+            inv_subBytes[8*10+7:8*10] = constant.inv_sbox[block[8*10+7:8*10]];
+            inv_subBytes[8*11+7:8*11] = constant.inv_sbox[block[8*11+7:8*11]];
 
-            subBytes[8*12+7:8*12] = constant.inv_sbox[block[8*12+7:8*12]];
-            subBytes[8*13+7:8*13] = constant.inv_sbox[block[8*13+7:8*13]];
-            subBytes[8*14+7:8*14] = constant.inv_sbox[block[8*14+7:8*14]];
-            subBytes[8*15+7:8*15] = constant.inv_sbox[block[8*15+7:8*15]];
+            inv_subBytes[8*12+7:8*12] = constant.inv_sbox[block[8*12+7:8*12]];
+            inv_subBytes[8*13+7:8*13] = constant.inv_sbox[block[8*13+7:8*13]];
+            inv_subBytes[8*14+7:8*14] = constant.inv_sbox[block[8*14+7:8*14]];
+            inv_subBytes[8*15+7:8*15] = constant.inv_sbox[block[8*15+7:8*15]];
         end
     endfunction
 
@@ -214,14 +215,9 @@ module AES_decipher (
         main_ctrl_new  = CTRL_IDLE;
         ready_new      = 1'b0;
         update_type    = NO_UPDATE;
-        round_ctrl_inc = 1'b0;
+        round_ctrl_dec = 1'b0;
 
-        // get num_rounds
-        if (keylen == AES_256_BIT_KEY) begin
-            num_rounds = AES256_ROUNDS;
-        end else begin
-            num_rounds = AES128_ROUNDS;
-        end
+
 
 
         // main state machine
@@ -234,12 +230,12 @@ module AES_decipher (
             end
             CTRL_INIT : begin
                 main_ctrl_new  = CTRL_MAIN;
-                round_ctrl_inc = 1'b1;
+                round_ctrl_dec = 1'b1;
                 update_type    = INIT_UPDATE;
             end
             CTRL_MAIN : begin
-                round_ctrl_inc = 1'b1;
-                if (round_ctrl_reg < num_rounds) begin
+                round_ctrl_dec = 1'b1;
+                if (round_ctrl_reg > 0) begin
                     main_ctrl_new = CTRL_MAIN;
                     update_type   = MAIN_UPDATE;
                 end else begin
@@ -259,9 +255,14 @@ module AES_decipher (
 
     always @(*) begin : round_ctrl
         // default assignments
-        round_ctrl_new = 4'h0;
-        if (round_ctrl_inc) begin
-            round_ctrl_new = round_ctrl_reg + 1'b1;
+        if (keylen == AES_256_BIT_KEY) begin
+            round_ctrl_new = AES256_ROUNDS;
+        end else begin
+            round_ctrl_new = AES128_ROUNDS;
+        end
+
+        if (round_ctrl_dec) begin
+            round_ctrl_new = round_ctrl_reg - 1'b1;
         end
     end // round_ctrl
 
@@ -273,36 +274,39 @@ module AES_decipher (
     always @(*) begin : round_logic
 
         // just for clear denotation
-        reg [127:0] subBytes_block, shiftRow_block, mixColumn_block;
-        reg [127:0] addRoundKey_block, init_addRoundKey_block, final_addRoundKey_block;
+        reg [127:0] addRoundKey_block;
+        reg [127:0] inv_subBytes_block, inv_shiftRow_block, inv_mixColumn_block;
+        reg [127:0] init_addRoundKey_block, init_inv_shiftRow_block, init_inv_subBytes_block;
 
-        subBytes_block          = inv_subBytes(block_reg);
-        shiftRow_block          = shiftRow(subBytes_block);
-        mixColumn_block         = mixColumn(shiftRow_block);
-        addRoundKey_block       = addRoundKey(mixColumn_block, round_key);
-        init_addRoundKey_block  = addRoundKey(block, round_key);
-        final_addRoundKey_block = addRoundKey(shiftRow_block, round_key);
+        addRoundKey_block   = addRoundKey(block_reg, round_key);
+        inv_mixColumn_block = inv_mixColumn(addRoundKey_block);
+        inv_shiftRow_block  = inv_shiftRow(inv_mixColumn_block);
+        inv_subBytes_block  = inv_subBytes(inv_shiftRow_block);
+
+        init_addRoundKey_block   = addRoundKey(block, round_key);
+        init_inv_shiftRow_block = inv_shiftRow(init_addRoundKey_block);
+        init_inv_subBytes_block = inv_subBytes(init_inv_shiftRow_block);
 
         // $display("in last round, block =   %h", block_reg);
-        // $display("subBytes_block:          %h", subBytes_block);
-        // $display("shiftRow_block:          %h", shiftRow_block);
-        // $display("mixColumn_block:         %h", mixColumn_block);
         // $display("addRoundKey_block:       %h", addRoundKey_block);
-        // $display("init_addRoundKey_block:  %h", init_addRoundKey_block);
-        // $display("final_addRoundKey_block: %h\n", final_addRoundKey_block);
+        // $display("inv_mixColumn_block:     %h", inv_mixColumn_block);
+        // $display("inv_shiftRow_block:      %h", inv_shiftRow_block);
+        // $display("inv_subBytes_block:      %h", inv_subBytes_block);
+        // $display("init_inv_shiftRow_block: %h", init_inv_shiftRow_block);
+        // $display("init_inv_subBytes_block: %h\n", init_inv_subBytes_block);
 
         case (update_type)
             NO_UPDATE : begin
                 block_new = block_reg;
             end
             INIT_UPDATE : begin
-                block_new = init_addRoundKey_block;
+                block_new = init_inv_subBytes_block;
             end
             MAIN_UPDATE : begin
-                block_new = addRoundKey_block;
+                block_new = inv_subBytes_block;
             end
             FINAL_UPDATE : begin
-                block_new = final_addRoundKey_block;
+                block_new = addRoundKey_block;
             end
             default : begin end
         endcase // update_type

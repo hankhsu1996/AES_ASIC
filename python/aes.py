@@ -963,14 +963,23 @@ def main():
 def roundKeyTbGen():
 
     test_num = 100
+    with open('../verilog/DAT/data_keyGen256.txt', 'r') as f:
+        lines = [l.strip() for l in f.readlines()]
+
+    l = lines[0]
+    print(hex(int(l[0:7], 16)))
     for i in range(test_num):
-        key = (random.getrandbits(32), random.getrandbits(32),
-               random.getrandbits(32), random.getrandbits(32),
-               random.getrandbits(32), random.getrandbits(32),
-               random.getrandbits(32), random.getrandbits(32))
+        # key = (random.getrandbits(32), random.getrandbits(32),
+        #        random.getrandbits(32), random.getrandbits(32))
+        key = (int(lines[i * 15][0:8], 16), int(lines[i * 15][8:16], 16),
+               int(lines[i * 15][16:24], 16), int(lines[i * 15][24:32], 16),
+               int(lines[i * 15 + 1][0:8],
+                   16), int(lines[i * 15 + 1][8:16], 16),
+               int(lines[i * 15 + 1][16:24], 16), int(lines[i * 15 + 1][24:32], 16))
         block = (random.getrandbits(32), random.getrandbits(32),
                  random.getrandbits(32), random.getrandbits(32))
-        aes_encipher_block(key, block)
+        # aes_encipher_block(key, block)
+        aes_decipher_block(key, block)
 
 
 #-------------------------------------------------------------------
@@ -980,8 +989,8 @@ def roundKeyTbGen():
 #-------------------------------------------------------------------
 if __name__ == "__main__":
     # Run the main function.
-    sys.exit(main())
-    # sys.exit(roundKeyTbGen())
+    # sys.exit(main())
+    sys.exit(roundKeyTbGen())
 
 #=======================================================================
 # EOF aes_key_gen.py

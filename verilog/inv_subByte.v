@@ -12,7 +12,6 @@ module AES_core (
     function [127:0] inv_subBytes (input [127:0] block);
 
         begin
-            // find 1st hex
             inv_subBytes[8*0+7:8*0] = constant.inv_sbox[block[8*0+7:8*0]];
             inv_subBytes[8*1+7:8*1] = constant.inv_sbox[block[8*1+7:8*1]];
             inv_subBytes[8*2+7:8*2] = constant.inv_sbox[block[8*2+7:8*2]];

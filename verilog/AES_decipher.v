@@ -61,42 +61,53 @@ module AES_decipher (
     // ---------------- basic four functions ----------------
     // ------------------------------------------------------
 
-    // function [7:0] mixColumn32;
-    //     input [7:0] i1,i2,i3,i4;
-    //     begin
-    //         mixColumn32[7]=i1[6]^i2[6]^i2[7]^i3[7]^i4[7];
-    //         mixColumn32[6]=i1[5]^i2[5]^i2[6]^i3[6]^i4[6];
-    //         mixColumn32[5]=i1[4]^i2[4]^i2[5]^i3[5]^i4[5];
-    //         mixColumn32[4]=i1[3]^i1[7]^i2[3]^i2[4]^i2[7]^i3[4]^i4[4];
-    //         mixColumn32[3]=i1[2]^i1[7]^i2[2]^i2[3]^i2[7]^i3[3]^i4[3];
-    //         mixColumn32[2]=i1[1]^i2[1]^i2[2]^i3[2]^i4[2];
-    //         mixColumn32[1]=i1[0]^i1[7]^i2[0]^i2[1]^i2[7]^i3[1]^i4[1];
-    //         mixColumn32[0]=i1[7]^i2[7]^i2[0]^i3[0]^i4[0];
-    //     end
-    // endfunction
+    function [7:0] lookupE (input [7:0] block);
+        lookupE = constant.E[block];
+    endfunction
 
+    function [7:0] lookupL (input [7:0] block);
+        lookupL = constant.L[block];
+    endfunction
 
-    // function [127:0] mixColumn (input [127:0] block);
-    //     begin
-    //         mixColumn[127:120] = mixColumn32 (block[127:120],block[119:112],block[111:104],block[103:96]);
-    //         mixColumn[119:112] = mixColumn32 (block[119:112],block[111:104],block[103:96],block[127:120]);
-    //         mixColumn[111:104] = mixColumn32 (block[111:104],block[103:96],block[127:120],block[119:112]);
-    //         mixColumn[103:96]  = mixColumn32 (block[103:96],block[127:120],block[119:112],block[111:104]);
-    //         mixColumn[95:88]   = mixColumn32 (block[95:88],block[87:80],block[79:72],block[71:64]);
-    //         mixColumn[87:80]   = mixColumn32 (block[87:80],block[79:72],block[71:64],block[95:88]);
-    //         mixColumn[79:72]   = mixColumn32 (block[79:72],block[71:64],block[95:88],block[87:80]);
-    //         mixColumn[71:64]   = mixColumn32 (block[71:64],block[95:88],block[87:80],block[79:72]);
-    //         mixColumn[63:56]   = mixColumn32 (block[63:56],block[55:48],block[47:40],block[39:32]);
-    //         mixColumn[55:48]   = mixColumn32 (block[55:48],block[47:40],block[39:32],block[63:56]);
-    //         mixColumn[47:40]   = mixColumn32 (block[47:40],block[39:32],block[63:56],block[55:48]);
-    //         mixColumn[39:32]   = mixColumn32 (block[39:32],block[63:56],block[55:48],block[47:40]);
-    //         mixColumn[31:24]   = mixColumn32 (block[31:24],block[23:16],block[15:8],block[7:0]);
-    //         mixColumn[23:16]   = mixColumn32 (block[23:16],block[15:8],block[7:0],block[31:24]);
-    //         mixColumn[15:8]    = mixColumn32 (block[15:8],block[7:0],block[31:24],block[23:16]);
-    //         mixColumn[7:0]     = mixColumn32 (block[7:0],block[31:24],block[23:16],block[15:8]);
-    //         // $display("---- mixCols:  %h ----", mixColumn);
-    //     end
-    // endfunction
+    function [7:0] add(input [7:0] a, input [7:0] b);
+        reg [8:0] temp;
+        begin
+            temp = a + b;
+
+            if (temp > 8'hff) begin
+                temp = temp - 8'hff;
+            end
+
+            add[7:0] = temp[7:0];
+        end
+    endfunction
+
+    function [7:0] lookupEL(input [7:0] block, input [7:0] constant);
+        if (block == 8'h00) begin
+            lookupEL = 8'h00;
+        end else begin
+            lookupEL = lookupE(add(lookupL(block), lookupL(constant)));
+        end
+    endfunction
+
+    function [31:0] inv_mixColumn32(input [31:0] block);
+        begin
+            inv_mixColumn32[31:24] = lookupEL(block[7:0], 8'h09) ^ lookupEL(block[15:8], 8'h0d) ^ lookupEL(block[23:16], 8'h0b) ^ lookupEL(block[31:24], 8'h0e);
+            inv_mixColumn32[23:16] = lookupEL(block[7:0], 8'h0d) ^ lookupEL(block[15:8], 8'h0b) ^ lookupEL(block[23:16], 8'h0e) ^ lookupEL(block[31:24], 8'h09);
+            inv_mixColumn32[15: 8] = lookupEL(block[7:0], 8'h0b) ^ lookupEL(block[15:8], 8'h0e) ^ lookupEL(block[23:16], 8'h09) ^ lookupEL(block[31:24], 8'h0d);
+            inv_mixColumn32[ 7: 0] = lookupEL(block[7:0], 8'h0e) ^ lookupEL(block[15:8], 8'h09) ^ lookupEL(block[23:16], 8'h0d) ^ lookupEL(block[31:24], 8'h0b);
+
+        end
+    endfunction
+
+    function [127:0] inv_mixColumn (input [127:0] block);
+        begin
+            inv_mixColumn[31:0] = inv_mixColumn32(block[31:0]);
+            inv_mixColumn[63:32] = inv_mixColumn32(block[63:32]);
+            inv_mixColumn[95:64] = inv_mixColumn32(block[95:64]);
+            inv_mixColumn[127:96] = inv_mixColumn32(block[127:96]);
+        end
+    endfunction
 
 
     function [127:0] inv_shiftRow(input [127:0] block);
@@ -281,7 +292,7 @@ module AES_decipher (
         // $display("final_addRoundKey_block: %h\n", final_addRoundKey_block);
 
         case (update_type)
-            NO_UPDATE   : begin
+            NO_UPDATE : begin
                 block_new = block_reg;
             end
             INIT_UPDATE : begin

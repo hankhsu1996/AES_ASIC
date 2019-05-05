@@ -1,39 +1,34 @@
 module aes( 
 clk,
 reset_n,
-[7:0] address,
+[3:0] control,
 [15:0] write_data,
-[15:0] read_data);
+[7:0] data_out);
+
 //-------------------------------------------I/O------------------------------------------//
 input clk;
 input reset_n;
 input [7:0] address;
 input [15:0] write_data;
-output [15:0] read_data;
+output [7:0] data_out;
 //----------------------------------------------------------------------------------------//
 
-//---------------------------------------ADDRESS DETAILS----------------------------------//
-//000 0 ****
-localparam KEY_0 = 8'h0;
-localparam KEY_15 = 8'h0f;
-//000 1 0***
-localparam BLOCK_0 = 8'h10;
-localparam BLOCK_7 = 8'h17; 
-//001 00***
-localparam RESULT_0 = 8'h20;
-localparam RESULT_7 = 8'h27;
-//010 000**
-localparam CONFIG = 3'h2; 
+//---------------------------------------CONTROL DETAILS----------------------------------//
+localparam BLOCK_WE = 4'h1;
+localparam KEY_WE = 4'h2;
+
+localparam STATUS = 4'h3;// tell user whether key is ready or result is available
+
+localparam CONFIG = 4'h4; 
 localparam CTRL_ENCDEC_BIT = 0;//bit that decide enc or dec
 localparam CTRL_KEYLEN_BIT = 1;//bit that decide 128 or 256
-//011 000**
-localparam STATUS = 3'h3;
-localparam STATUS_READY_BIT = 0;
-localparam STATUS_VALID_BIT = 1;
-//100 000**
-localparam ADDR_CTRL = 3'h4;
-localparam CTRL_INIT_BIT = 0;
-localparam CTRL_NEXT_BIT = 1;
+
+localparam CTRL = 4'h5;
+localparam CTRL_INIT_BIT = 0;//bit tell key generator it's time to generate keys 
+localparam CTRL_NEXT_BIT = 1;//bit tell core the process can be start
+
+localparam RESULT_OUT = 4'h6;//take out result
+
 //----------------------------------------------------------------------------------------//
 
 //------------------------------------------REGISTER--------------------------------------//
@@ -42,6 +37,8 @@ reg block_we;
 
 reg [15:0] key_reg [0:15];//receive in 16 bits everytime
 reg key_we;
+
+reg [3:0] counter;//decide index count from 0 to 15
 
 reg init_reg;//tell core it is the first time
 reg init_new;//connect to input of register init_reg
@@ -57,33 +54,39 @@ reg encdec_reg;
 
 reg valid_reg;
 reg ready_reg;
+
+reg result_wo;
 //----------------------------------------------------------------------------------------//
 
 //------------------------------------------WIRE------------------------------------------//
 wire [255:0] core_key;//original key input
 wire [127:0] core_block;//text content 
 
-wire core_init;//initial param ->seem to start to work on encipher or decoder
+wire core_init;
 wire core_next;
+
 wire core_keylen;//0->128 1->256
+wire core_encdec;
+
 wire core_valid;
 wire core_ready;
-wire core_encdec;
 wire [127 : 0] core_result;
 
-wire [15:0] tmp_read_data;// connect to read_data
+wire [15:0] tmp_read_data;
 //----------------------------------------------------------------------------------------//
 
 //------------------------------------------ASSIGN----------------------------------------//
 assign core_key = {key_reg[0], key_reg[1], key_reg[2], key_reg[3],key_reg[4], key_reg[5], key_reg[6], key_reg[7]
                    key_reg[8], key_reg[9], key_reg[10], key_reg[11],key_reg[12], key_reg[13], key_reg[14], key_reg[15]};
 assign core_block  = {block_reg[0], block_reg[1], block_reg[2], block_reg[3],block_reg[5], block_reg[6], block_reg[7]};
-assign core_init = init_reg;
-assign core_next   = next_reg;
+
 assign core_keylen = keylen_reg;
 assign core_encdec = encdec_reg;
 
-assign read_data = tmp_read_data;
+assign core_init = init_reg;
+assign core_next   = next_reg;
+
+assign data_out = tmp_read_data;
 //----------------------------------------------------------------------------------------//
 
 //---------------------------------------core instantiation-------------------------------//
@@ -96,27 +99,24 @@ aes_core core( .clk(clk), .reset_n(reset_n), .encdec(core_encdec), .init(core_in
 always @ * begin
     key_we = 1'b0;
     block_we  = 1'b0;
+    config_we  = 1'b0;
     init_new = 1'b0;
     next_new      = 1'b0;
-    config_we     = 1'b0;
     tmp_read_data = 32'h0;
+    result_wo = 1'b0;
 
-    if ((address >= KEY_0) && (address <= KEY_15))
-        key_we = 1'b1;
+    case (control)
+        KEY_WE:     key_we = 1'b1;
+        BLOCK_WE:   block_we = 1'b1;
 
-    if ((address >= BLOCK_0) && (address <= BLOCK_7))
-        block_we = 1'b1;
-
-    if ((address >= RESULT_0) && (address <= RESULT_7))
-        tmp_read_data = result_reg[(7 - (address - RESULT_0)) * 16 +: 16];
-
-    case (address[7:5])
-        CONFIG:  config_we = 1'b1;
-        CTRL:    tmp_read_data = {12'h0, keylen_reg, encdec_reg, next_reg, init_reg};
-        STATUS:  tmp_read_data = {14'h0, valid_reg, ready_reg};
-        ADDR_CTRL: begin init_new = address[CTRL_INIT_BIT];
-                         next_new = address[CTRL_NEXT_BIT];
-                   end
+        STATUS:     tmp_read_data = {14'h0, valid_reg, ready_reg};
+        CONFIG:     config_we = 1'b1;
+        CTRL:       begin init_new = write_data[CTRL_INIT_BIT];
+                        next_new = write_data[CTRL_NEXT_BIT];
+                        tmp_read_data = {12'h0, keylen_reg, encdec_reg, next_reg, init_reg};
+                    end
+        RESULT_OUT: result_wo = 1'b1;
+     
     endcase // address
 
 end
@@ -134,32 +134,42 @@ always @ (posedge clk or negedge reset_n) begin
         for (i=0; i<15; i=i+1)
              key_reg <= 16'h0;
 
+        counter <= 4'h0;
         init_reg <= 1'b0;
         next_reg <= 1'b0;
         keylen_reg <= 1'b0;
         valid_reg  <= 1'b0;
         ready_reg  <= 1'b0;
         result_reg <= 128'h0;
-
-
+        
     end
     else begin
         init_reg <= init_new;
-        ready_reg  <= core_ready;
-        valid_reg  <= core_valid;
-        result_reg <= core_result;
-        init_reg   <= init_new;
         next_reg   <= next_new;
 
-        if (key_we)
-            key_reg[address[3 : 0]] <= write_data;
+        ready_reg  <= core_ready;
+        valid_reg  <= core_valid;
 
-        if (block_we)
-            block_reg[address[2 : 0]] <= write_data;
+        result_reg <= core_result;
+
+        if (key_we) begin
+            key_reg[counter] <= write_data;
+            counter <= ((counter == 4'hf)? 4'h0: counter + 1);
+        end
+
+        if (block_we) begin
+            block_reg[counter] <= write_data;
+            counter <= ((counter == 4'h7)? 4'h0: counter + 1);
+        end
 
         if (config_we) begin
-            encdec_reg <= address[CTRL_ENCDEC_BIT];
-            keylen_reg <= address[CTRL_KEYLEN_BIT];
+            encdec_reg <= write_data[CTRL_ENCDEC_BIT];
+            keylen_reg <= write_data[CTRL_KEYLEN_BIT];
+        end
+
+        if (result_wo) begin
+            tmp_read_data <= result_reg[(15 - counter) * 8 +: 8];
+            counter <= ((counter == 4'hf)? 4'h0: counter + 1);
         end
 
     end

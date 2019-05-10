@@ -114,8 +114,8 @@ module AES_core (
 			main_ctrl_reg    <= main_ctrl_new;
 			ready_reg        <= ready_new;
 			result_valid_reg <= result_valid_new;
-			$display("in core, key in:   %h", key[255:128]);
-			$display("in core, block in: %h", block);
+			// $display("in core, key in:   %h", key[255:128]);
+			// $display("in core, block in: %h", block);
 		end
 	end
 

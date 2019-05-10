@@ -1,7 +1,7 @@
 `include "AES_core.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
-`define TEST_LEN_128 10
+`define TEST_LEN_128 100
 `define TEST_LEN_256 1
 
 module tb_AES_core ();
@@ -41,6 +41,15 @@ module tb_AES_core ();
 		.result_valid(result_valid)
 	);
 
+
+	// dump vars
+	initial begin
+		$dumpfile("AES_core.vcd");
+		// 0: all, 1: this layer, 2: this and next layer
+		$dumpvars(2, tb_AES_core);
+	end
+
+
 	// read from file
 	initial begin
 		$readmemh("./DAT/data_AES128_core.txt", mem_block_128);
@@ -68,7 +77,7 @@ module tb_AES_core ();
 				rst_n = 1'b1;
 				init = 1'b1;
 				next = 1'b0;
-				key = {mem_key_128[i], 128'b0};
+				key = {mem_key_128[i * 11], 128'b0};
 				block = mem_block_128[i];
 			end
 
@@ -109,6 +118,13 @@ module tb_AES_core ();
 				end
 			end
 		end // for loop
+
+
+		if (err_count_128 != 0) begin
+			$display("error count: %d for AES128", err_count_128);
+		end else begin
+			$display("pass all the tests for AES128");
+		end
 
 		$finish;
 

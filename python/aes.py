@@ -48,7 +48,7 @@ import random
 #-------------------------------------------------------------------
 # Constants.
 #-------------------------------------------------------------------
-VERBOSE = False
+VERBOSE = True
 DUMP_VARS = False
 
 AES_128_ROUNDS = 10
@@ -662,7 +662,7 @@ def aes_encipher_block(key, block):
         tmp_block4 = addroundkey(round_keys[i], tmp_block3)
 
     # Final round
-    # print("  Final round.")
+    print("Final round.")
     tmp_block1 = subbytes(tmp_block4)
     tmp_block2 = shiftrows(tmp_block1)
     tmp_block3 = addroundkey(round_keys[num_rounds], tmp_block2)

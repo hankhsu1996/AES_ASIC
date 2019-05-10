@@ -1,4 +1,6 @@
-`include "constant.v"
+// for higher level module, constant.v may be double included
+// uncomment to run testbench
+// `include "constant.v"
 `timescale 1ns/1ps
 
 module AES_encipher (

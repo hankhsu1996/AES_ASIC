@@ -2,13 +2,13 @@
 
 module AES_key_mem_seq (
     input  wire         clk      ,
-    input  wire         reset_n  ,
+    input  wire         rst_n    ,
     input  wire [255:0] key      ,
     input  wire         keylen   ,
     input  wire         init     ,
     input  wire [  3:0] round    ,
     output wire [127:0] round_key,
-    output wire         ready    
+    output wire         ready
     // output wire [ 31:0] sboxw    ,
     // input  wire [ 31:0] new_sboxw
 );
@@ -66,10 +66,10 @@ module AES_key_mem_seq (
     assign ready     = ready_reg;
     // assign sboxw     = tmp_sboxw;
 
-    always @ (posedge clk or negedge reset_n) begin : reg_update
+    always @ (posedge clk or negedge rst_n) begin : reg_update
         integer i;
 
-        if (!reset_n) begin
+        if (!rst_n) begin
             for (i = 0 ; i <= AES_256_NUM_ROUNDS ; i = i + 1)
                 key_mem[i] <= 128'h0;
 
@@ -132,7 +132,7 @@ module AES_key_mem_seq (
         w6 = prev_key1_reg[063 : 032];
         w7 = prev_key1_reg[031 : 000];
 
-        rconw     = {rcon_reg, 24'h0};
+        rconw = {rcon_reg, 24'h0};
         // tmp_sboxw = w7;
 
         // rotstw    = {new_sboxw[23 : 00], new_sboxw[31 : 24]};
@@ -141,11 +141,11 @@ module AES_key_mem_seq (
 
         tw[31:24] = constant.sbox[w7[31:24]];
         tw[23:16] = constant.sbox[w7[23:16]];
-        tw[15:8] = constant.sbox[w7[15:8]];
-        tw[7:0] = constant.sbox[w7[7:0]];
+        tw[15:8]  = constant.sbox[w7[15:8]];
+        tw[7:0]   = constant.sbox[w7[7:0]];
 
-        rotstw    = {tw[23 : 00], tw[31 : 24]};
-        trw       = rotstw ^ rconw;
+        rotstw = {tw[23 : 00], tw[31 : 24]};
+        trw    = rotstw ^ rconw;
         // tw        = new_sboxw;
 
         if (round_key_update) begin

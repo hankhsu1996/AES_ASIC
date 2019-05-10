@@ -1,17 +1,19 @@
 `include "AES_encipher.v"
+`include "AES_decipher.v"
+`include "AES_key_mem_seq.v"
 
 module AES_core (
 	input          clk         , // Clock
 	input          rst_n       , // Asynchronous reset active low
 	input          encdec      , // Encipher or decipher
-	input          init        ,
-	input          next        ,
-	output         ready       ,
+	input          init        , // call key_mem to start
+	input          next        , // call encipher / decipher to start
+	output         ready       , // key_mem ready
 	input  [255:0] key         ,
 	input          keylen      , // AES128 or AES256
-	input  [255:0] block       ,
-	output [255:0] result      ,
-	output         result_valid
+	input  [127:0] block       ,
+	output [127:0] result      ,
+	output         result_valid // encipher / decipher ready
 );
 
 	// ------------------------------------------------------
@@ -44,6 +46,12 @@ module AES_core (
 	wire [127:0] enc_new_block;
 	wire         enc_ready    ;
 
+	// dec wires
+	reg          dec_next     ;
+	wire [  3:0] dec_round    ;
+	wire [127:0] dec_new_block;
+	wire         dec_ready    ;
+
 	// for MUX
 	reg [127:0] muxed_new_block;
 	reg [  3:0] muxed_round    ;
@@ -64,7 +72,19 @@ module AES_core (
 		.ready    (enc_ready    )
 	);
 
-	AES_key_memory key_mem (
+	AES_decipher dec (
+		.clk      (clk          ),
+		.rst_n    (rst_n        ),
+		.next     (dec_next     ),
+		.keylen   (keylen       ),
+		.round    (dec_round    ),
+		.round_key(round_key    ),
+		.block    (block        ),
+		.new_block(dec_new_block),
+		.ready    (dec_ready    )
+	);
+
+	AES_key_mem_seq key_mem (
 		.clk      (clk        ),
 		.rst_n    (rst_n      ),
 		.key      (key        ),

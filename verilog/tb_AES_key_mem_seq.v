@@ -30,7 +30,7 @@ module tb_aes_key_mem();
   reg [31 : 0] tc_ctr;
 
   reg            tb_clk;
-  reg            tb_reset_n;
+  reg            tb_rst_n;
   reg [255 : 0]  tb_key;
   reg            tb_keylen;
   reg            tb_init;
@@ -47,7 +47,7 @@ module tb_aes_key_mem();
   //----------------------------------------------------------------
   AES_key_mem_seq dut(
                   .clk(tb_clk),
-                  .reset_n(tb_reset_n),
+                  .rst_n(tb_rst_n),
 
                   .key(tb_key),
                   .keylen(tb_keylen),
@@ -147,9 +147,9 @@ module tb_aes_key_mem();
   task reset_dut;
     begin
       $display("*** Toggle reset.");
-      tb_reset_n = 0;
+      tb_rst_n = 0;
       #(2 * CLK_PERIOD);
-      tb_reset_n = 1;
+      tb_rst_n = 1;
     end
   endtask // reset_dut
 
@@ -167,7 +167,7 @@ module tb_aes_key_mem();
       tc_ctr    = 0;
 
       tb_clk     = 0;
-      tb_reset_n = 1;
+      tb_rst_n = 1;
       tb_key     = {8{32'h00000000}};
       tb_keylen  = 0;
       tb_init    = 0;

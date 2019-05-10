@@ -1,4 +1,4 @@
-`include "aes_key_mem.v"
+`include "AES_key_mem_seq.v"
 `include "aes_sbox.v"
 module tb_aes_key_mem();
 
@@ -44,7 +44,7 @@ module tb_aes_key_mem();
   //----------------------------------------------------------------
   // Device Under Test.
   //----------------------------------------------------------------
-  aes_key_mem dut(
+  AES_key_mem_seq dut(
                   .clk(tb_clk),
                   .reset_n(tb_reset_n),
 
@@ -54,14 +54,13 @@ module tb_aes_key_mem();
 
                   .round(tb_round),
                   .round_key(tb_round_key),
-                  .ready(tb_ready),
-
-                  .sboxw(tb_sboxw),
-                  .new_sboxw(tb_new_sboxw)
+                  .ready(tb_ready)
+                  // .sboxw(tb_sboxw),
+                  // .new_sboxw(tb_new_sboxw)
                  );
 
   // The DUT requirees Sboxes.
-  aes_sbox sbox(.sboxw(tb_sboxw), .new_sboxw(tb_new_sboxw));
+  // aes_sbox sbox(.sboxw(tb_sboxw), .new_sboxw(tb_new_sboxw));
 
 
   //----------------------------------------------------------------

@@ -1,5 +1,6 @@
 `include "AES_key_mem_seq.v"
-`include "aes_sbox.v"
+// `include "aes_sbox.v"
+
 module tb_aes_key_mem();
 
   //----------------------------------------------------------------

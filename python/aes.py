@@ -48,8 +48,8 @@ import random
 #-------------------------------------------------------------------
 # Constants.
 #-------------------------------------------------------------------
-VERBOSE = True
-DUMP_VARS = True
+VERBOSE = False
+DUMP_VARS = False
 
 AES_128_ROUNDS = 10
 AES_256_ROUNDS = 14
@@ -380,7 +380,7 @@ def next_128bit_key(prev_key, rcon):
 # Generating the keys for 128 bit keys.
 #-------------------------------------------------------------------
 def key_gen128(key):
-    print("Doing the 128 bit key expansion")
+    # print("Doing the 128 bit key expansion")
 
     round_keys = []
 
@@ -647,14 +647,14 @@ def aes_encipher_block(key, block):
         num_rounds = AES_256_ROUNDS
 
     # Init round
-    print("  Initial AddRoundKeys round.")
+    # print("  Initial AddRoundKeys round.")
     tmp_block4 = addroundkey(round_keys[0], block)
 
     # Main rounds
     for i in range(1, (num_rounds)):
-        print("")
-        print("  Round %02d" % i)
-        print("  ---------")
+        # print("")
+        # print("  Round %02d" % i)
+        # print("  ---------")
 
         tmp_block1 = subbytes(tmp_block4)
         tmp_block2 = shiftrows(tmp_block1)
@@ -662,7 +662,7 @@ def aes_encipher_block(key, block):
         tmp_block4 = addroundkey(round_keys[i], tmp_block3)
 
     # Final round
-    print("  Final round.")
+    # print("  Final round.")
     tmp_block1 = subbytes(tmp_block4)
     tmp_block2 = shiftrows(tmp_block1)
     tmp_block3 = addroundkey(round_keys[num_rounds], tmp_block2)
@@ -777,16 +777,16 @@ def aes_decipher_block(key, block):
         num_rounds = AES_256_ROUNDS
 
     # Initial round
-    print("  Initial, partial round.")
+    # print("  Initial, partial round.")
     tmp_block1 = addroundkey(round_keys[len(round_keys) - 1], tmp_block)
     tmp_block2 = inv_shiftrows(tmp_block1)
     tmp_block4 = inv_subbytes(tmp_block2)
 
     # Main rounds
     for i in range(1, (num_rounds)):
-        print("")
-        print("  Round %02d" % i)
-        print("  ---------")
+        # print("")
+        # print("  Round %02d" % i)
+        # print("  ---------")
 
         tmp_block1 = addroundkey(
             round_keys[(len(round_keys) - i - 1)], tmp_block4)
@@ -982,6 +982,47 @@ def roundKeyTbGen():
         aes_decipher_block(key, block)
 
 
+def encFromKeyFile():
+    test_num = 100
+    with open('../verilog/DAT/data_keyGen128.txt', 'r') as f:
+        lines = [l.strip() for l in f.readlines()]
+
+    blocks = list()
+    results = list()
+
+    for i in range(test_num):
+        key = (
+            int(lines[i * 11][0:8], 16),
+            int(lines[i * 11][8:16], 16),
+            int(lines[i * 11][16:24], 16),
+            int(lines[i * 11][24:32], 16)
+        )
+
+        block = (
+            random.getrandbits(32),
+            random.getrandbits(32),
+            random.getrandbits(32),
+            random.getrandbits(32)
+        )
+        block_strs = ['{0:0{1}x}'.format(r, 8) for r in block]
+        block_str = ''.join(block_strs)
+
+        result = aes_encipher_block(key, block)
+        result_strs = ['{0:0{1}x}'.format(r, 8) for r in result]
+        result_str = ''.join(result_strs)
+
+        blocks.append(block_str)
+        results.append(result_str)
+
+    print('blocks:')
+    for s in blocks:
+        print(s)
+
+    print('results:')
+    for s in results:
+        print(s)
+
+
 #-------------------------------------------------------------------
 # __name__
 # Python thingy which allows the file to be run standalone as
@@ -990,7 +1031,8 @@ def roundKeyTbGen():
 if __name__ == "__main__":
     # Run the main function.
     # sys.exit(main())
-    sys.exit(roundKeyTbGen())
+    # sys.exit(roundKeyTbGen())
+    sys.exit(encFromKeyFile())
 
 #=======================================================================
 # EOF aes_key_gen.py

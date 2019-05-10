@@ -13,7 +13,7 @@ module AES_core (
 	input          keylen      , // AES128 or AES256
 	input  [127:0] block       ,
 	output [127:0] result      ,
-	output         result_valid // encipher / decipher ready
+	output         result_valid  // encipher / decipher ready
 );
 
 	// ------------------------------------------------------
@@ -26,8 +26,8 @@ module AES_core (
 	localparam CTRL_NEXT = 2'h2;
 
 	// registers
-	reg aes_core_ctrl_reg;
-	reg aes_core_ctrl_new;
+	reg [1:0] main_ctrl_reg;
+	reg [1:0] main_ctrl_new;
 
 	reg ready_reg;
 	reg ready_new;
@@ -38,7 +38,7 @@ module AES_core (
 
 	// key memory wires
 	wire [127:0] round_key;
-	wire key_ready;
+	wire         key_ready;
 
 	// enc wires
 	reg          enc_next     ;
@@ -96,14 +96,89 @@ module AES_core (
 	);
 
 	// Concurrent connectivity for ports
-    assign ready     = ready_reg;
-    assign  result    = muxed_new_block;
-    assign result_valid = result_valid_reg;
+	assign ready        = ready_reg;
+	assign result       = muxed_new_block;
+	assign result_valid = result_valid_reg;
 
 	// ------------------------------------------------------
 	// --------------------- reg update ---------------------
 	// ------------------------------------------------------
 
 
+	always @(posedge clk or negedge rst_n) begin : always_async
+		if(~rst_n) begin
+			main_ctrl_reg    <= 2'b0;
+			ready_reg        <= 1'b0;
+			result_valid_reg <= 1'b0;
+		end else begin
+			main_ctrl_reg    <= main_ctrl_new;
+			ready_reg        <= ready_new;
+			result_valid_reg <= result_valid_new;
+			$display("in core, key in:   %h", key[255:128]);
+			$display("in core, block in: %h", block);
+		end
+	end
+
+
+	// ------------------------------------------------------
+	// ------------------ main controller  ------------------
+	// ------------------------------------------------------
+
+	always @(*) begin : main_ctrl
+
+		// default assignments
+		main_ctrl_new    = CTRL_IDLE;
+		ready_new        = 1'b0;
+		result_valid_new = 1'b0;
+
+		case (main_ctrl_reg)
+
+			CTRL_IDLE : begin
+				if (init) begin
+					main_ctrl_new = CTRL_INIT;
+				end else if (next) begin
+					main_ctrl_new = CTRL_NEXT;
+				end
+			end
+
+			CTRL_INIT : begin
+				if (key_ready) begin
+					main_ctrl_new = CTRL_IDLE;
+					ready_new     = 1'b1;
+				end else begin
+					main_ctrl_new = CTRL_INIT;
+				end
+			end
+
+			CTRL_NEXT : begin
+				if (muxed_ready) begin
+					main_ctrl_new    = CTRL_IDLE;
+					result_valid_new = 1'b1;
+				end else begin
+					main_ctrl_new    = CTRL_NEXT;
+				end
+			end
+
+			default : begin end
+		endcase // main_ctrl_reg
+	end
+
+
+	// ------------------------------------------------------
+	// -------------------- multiplexer  --------------------
+	// ------------------------------------------------------
+	always @(*) begin : multiplexer
+		if (encdec) begin
+			enc_next        = next;
+			muxed_new_block = enc_new_block;
+			muxed_round     = enc_round;
+			muxed_ready     = enc_ready;
+		end else begin
+			dec_next        = next;
+			muxed_new_block = dec_new_block;
+			muxed_round     = dec_round;
+			muxed_ready     = dec_ready;
+		end
+	end
 
 endmodule

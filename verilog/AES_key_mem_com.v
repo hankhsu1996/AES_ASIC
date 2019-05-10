@@ -3,7 +3,7 @@
 `include "constant.v"
 
 
-module AES_key_memory (
+module AES_key_mem_com (
     input          clk   , // Clock
     input          rst_n , // Asynchronous reset active low
     input  [  3:0] round ,

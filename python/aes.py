@@ -971,11 +971,16 @@ def roundKeyTbGen():
     for i in range(test_num):
         # key = (random.getrandbits(32), random.getrandbits(32),
         #        random.getrandbits(32), random.getrandbits(32))
-        key = (int(lines[i * 15][0:8], 16), int(lines[i * 15][8:16], 16),
-               int(lines[i * 15][16:24], 16), int(lines[i * 15][24:32], 16),
-               int(lines[i * 15 + 1][0:8],
-                   16), int(lines[i * 15 + 1][8:16], 16),
-               int(lines[i * 15 + 1][16:24], 16), int(lines[i * 15 + 1][24:32], 16))
+        key = (
+            int(lines[i * 15][0:8], 16),
+            int(lines[i * 15][8:16], 16),
+            int(lines[i * 15][16:24], 16),
+            int(lines[i * 15][24:32], 16),
+            int(lines[i * 15 + 1][0:8], 16),
+            int(lines[i * 15 + 1][8:16], 16),
+            int(lines[i * 15 + 1][16:24], 16),
+            int(lines[i * 15 + 1][24:32], 16)
+        )
         block = (random.getrandbits(32), random.getrandbits(32),
                  random.getrandbits(32), random.getrandbits(32))
         # aes_encipher_block(key, block)
@@ -984,7 +989,7 @@ def roundKeyTbGen():
 
 def encFromKeyFile():
     test_num = 100
-    with open('../verilog/DAT/data_keyGen128.txt', 'r') as f:
+    with open('../verilog/DAT/data_keyGen256.txt', 'r') as f:
         lines = [l.strip() for l in f.readlines()]
 
     blocks = list()
@@ -992,10 +997,14 @@ def encFromKeyFile():
 
     for i in range(test_num):
         key = (
-            int(lines[i * 11][0:8], 16),
-            int(lines[i * 11][8:16], 16),
-            int(lines[i * 11][16:24], 16),
-            int(lines[i * 11][24:32], 16)
+            int(lines[i * 15][0:8], 16),
+            int(lines[i * 15][8:16], 16),
+            int(lines[i * 15][16:24], 16),
+            int(lines[i * 15][24:32], 16),
+            int(lines[i * 15 + 1][0:8], 16),
+            int(lines[i * 15 + 1][8:16], 16),
+            int(lines[i * 15 + 1][16:24], 16),
+            int(lines[i * 15 + 1][24:32], 16)
         )
 
         block = (

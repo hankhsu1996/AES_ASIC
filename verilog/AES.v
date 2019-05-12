@@ -8,14 +8,14 @@ reset_n,
 //-------------------------------------------I/O------------------------------------------//
 input clk;
 input reset_n;
-input [7:0] address;
+input [3:0] control;
 input [15:0] write_data;
 output [7:0] data_out;
 //----------------------------------------------------------------------------------------//
 
 //---------------------------------------CONTROL DETAILS----------------------------------//
-localparam BLOCK_WE = 4'h1;
-localparam KEY_WE = 4'h2;
+localparam WRITE_BLOCK = 4'h1;
+localparam WRITE_KEY = 4'h2;
 
 localparam STATUS = 4'h3;// tell user whether key is ready or result is available
 
@@ -23,7 +23,7 @@ localparam CONFIG = 4'h4;
 localparam CTRL_ENCDEC_BIT = 0;//bit that decide enc or dec
 localparam CTRL_KEYLEN_BIT = 1;//bit that decide 128 or 256
 
-localparam CTRL = 4'h5;
+localparam START = 4'h5;
 localparam CTRL_INIT_BIT = 0;//bit tell key generator it's time to generate keys 
 localparam CTRL_NEXT_BIT = 1;//bit tell core the process can be start
 
@@ -33,10 +33,10 @@ localparam RESULT_OUT = 4'h6;//take out result
 
 //------------------------------------------REGISTER--------------------------------------//
 reg [15:0] block_reg [0:7];//receive 16 bits everytime
-reg block_we;
+reg write_block;
 
 reg [15:0] key_reg [0:15];//receive in 16 bits everytime
-reg key_we;
+reg write_key;
 
 reg [3:0] counter;//decide index count from 0 to 15
 
@@ -97,8 +97,8 @@ aes_core core( .clk(clk), .reset_n(reset_n), .encdec(core_encdec), .init(core_in
 
 //---------------------------------finite state machine part------------------------------//
 always @ * begin
-    key_we = 1'b0;
-    block_we  = 1'b0;
+    write_key = 1'b0;
+    write_block  = 1'b0;
     config_we  = 1'b0;
     init_new = 1'b0;
     next_new      = 1'b0;
@@ -106,14 +106,18 @@ always @ * begin
     result_wo = 1'b0;
 
     case (control)
-        KEY_WE:     key_we = 1'b1;
-        BLOCK_WE:   block_we = 1'b1;
+        WRITE_KEY:  begin write_key = 1'b1;
+                          tmp_read_data = {4'h0, counter};
+                    end
+        WRITE_BLOCK:  begin write_block = 1'b1;
+                            tmp_read_data = {4'h0, counter};
+                      end
 
-        STATUS:     tmp_read_data = {14'h0, valid_reg, ready_reg};
+        STATUS:     tmp_read_data = {6'h0, valid_reg, ready_reg};
         CONFIG:     config_we = 1'b1;
-        CTRL:       begin init_new = write_data[CTRL_INIT_BIT];
+        START:       begin init_new = write_data[CTRL_INIT_BIT];
                         next_new = write_data[CTRL_NEXT_BIT];
-                        tmp_read_data = {12'h0, keylen_reg, encdec_reg, next_reg, init_reg};
+                        tmp_read_data = {4'h0, keylen_reg, encdec_reg, next_reg, init_reg};
                     end
         RESULT_OUT: result_wo = 1'b1;
      
@@ -152,12 +156,12 @@ always @ (posedge clk or negedge reset_n) begin
 
         result_reg <= core_result;
 
-        if (key_we) begin
+        if (write_key) begin
             key_reg[counter] <= write_data;
             counter <= ((counter == 4'hf)? 4'h0: counter + 1);
         end
 
-        if (block_we) begin
+        if (write_block) begin
             block_reg[counter] <= write_data;
             counter <= ((counter == 4'h7)? 4'h0: counter + 1);
         end

@@ -29,7 +29,7 @@ module AES (
 
     localparam ADDR_STATUS      = 4'h4;
     localparam STATUS_READY_BIT = 0   ; // not used.
-    localparam STATUS_READY_BIT = 1   ;
+    localparam STATUS_VALID_BIT = 1   ;
 
     localparam ADDR_START     = 4'hf;
     localparam START_INIT_BIT = 0   ;
@@ -41,14 +41,22 @@ module AES (
     // ------------------------------- finite state machine --------------------------------//
     // -------------------------------------------------------------------------------------//
 
-    localparam CTRL_IDLE    = 4'h0;
-    localparam CTRL_CONFIG  = 4'h1;
-    localparam CTRL_KEY     = 4'h2;
-    localparam CTRL_BLOCK   = 4'h3;
-    localparam CTRL_READING = 4'h4;
-    localparam CTRL_STATUS  = 4'h5;
-    localparam CTRL_MAIN    = 4'h6;
-    localparam CTRL_
+    localparam CTRL_IDLE      = 4'h0;
+    localparam CTRL_CONFIG    = 4'h1;
+    localparam CTRL_KEY       = 4'h2;
+    localparam CTRL_BLOCK     = 4'h3;
+    localparam CTRL_READING   = 4'h4;
+    localparam CTRL_STATUS    = 4'h5;
+    localparam CTRL_MAIN      = 4'h6;
+    localparam CTRL_OUTPUTING = 4'h7;
+
+    localparam AES_128_BIT_KEY = 1'h0;
+    localparam AES_256_BIT_KEY = 1'h1;
+
+    localparam KEY128_ROUNDS = 4'h8;
+    localparam KEY256_ROUNDS = 4'hf;
+    localparam BLOCK_ROUNDS  = 4'h8;
+    localparam OUTPUT_ROUNDS = 4'hf;
 
 
     // -------------------------------------------------------------------------------------//
@@ -84,14 +92,16 @@ module AES (
     wire         core_valid ;
 
     // according to current state, output corresponding data
-    wire [15:0] tmp_data_out;
+    reg [15:0] tmp_data_out;
 
     // for state machine counter
     reg [3:0] main_ctrl_reg;
     reg [3:0] main_ctrl_new;
     reg [3:0] counter_reg  ;
     reg [3:0] counter_new  ;
-    integer   i            ;
+    reg       counter_inc  ;
+
+    integer i;
 
 
     // -------------------------------------------------------------------------------------------//
@@ -146,11 +156,11 @@ module AES (
             ready_reg  <= 1'b0;
 
             for (i = 0; i < 15; i = i + 1)
-                key_reg <= 16'h0;
+                key_reg[i] <= 16'h0;
             keylen_reg <= 1'b0;
 
             for (i = 0; i < 7; i = i + 1) // concurrent assignment, do not use begin
-                block_reg <= 16'h0;
+                block_reg[i] <= 16'h0;
 
             result_reg <= 128'b0;
             valid_reg  <= 1'b0;
@@ -169,42 +179,6 @@ module AES (
 
             // init reg, next reg, key reg, kenlen reg, block reg
 
-            //
-
-
-
-
-
-
-
-            init_reg <= init_new;
-            next_reg <= next_new;
-
-            ready_reg <= core_ready;
-            valid_reg <= core_valid;
-
-            result_reg <= core_result;
-
-            if (write_key) begin
-                key_reg[counter] <= data_in;
-                counter          <= ((counter == 4'hf)? 4'h0: counter + 1);
-            end
-
-            if (write_block) begin
-                block_reg[counter] <= data_in;
-                counter            <= ((counter == 4'h7)? 4'h0: counter + 1);
-            end
-
-            if (config_we) begin
-                encdec_reg <= data_in[CTRL_ENCDEC_BIT];
-                keylen_reg <= data_in[CTRL_KEYLEN_BIT];
-            end
-
-            if (result_wo) begin
-                tmp_read_data <= result_reg[(15 - counter) * 8 +: 8];
-                counter       <= ((counter == 4'hf)? 4'h0: counter + 1);
-            end
-
         end
 
     end
@@ -213,36 +187,97 @@ module AES (
     // ----------------------------------- finite state machine  ---------------------------------//
     // -------------------------------------------------------------------------------------------//
 
-    always @ * begin
-        write_key     = 1'b0;
-        write_block   = 1'b0;
-        config_we     = 1'b0;
+    always @(*) begin : main_ctrl
+        reg [3:0] num_rounds;
+
         init_new      = 1'b0;
         next_new      = 1'b0;
-        tmp_read_data = 32'h0;
-        result_wo     = 1'b0;
+        counter_new   = 4'h0;
+        main_ctrl_new = address; // BE CAREFUL!!!! Make sure there is no conflict. If the data is inputing or outputing, the main_ctrl_new should be overrided.
+        tmp_data_out  = 16'b0;
+        counter_inc   = 1'b0;
 
-        case (address)
-            WRITE_KEY : begin write_key = 1'b1;
-                tmp_read_data = {4'h0, counter};
+        // get num_rounds
+        if (main_ctrl_reg == CTRL_KEY) begin
+            if (keylen_reg == AES_256_BIT_KEY) begin
+                num_rounds = KEY256_ROUNDS;
+            end else begin
+                num_rounds = KEY128_ROUNDS;
             end
-            WRITE_BLOCK : begin write_block = 1'b1;
-                tmp_read_data = {4'h0, counter};
+        end else if(main_ctrl_reg == CTRL_BLOCK) begin
+            num_rounds = BLOCK_ROUNDS;
+        end else begin
+            // CTRL_OUTPUT or dump
+            num_rounds = OUTPUT_ROUNDS;
+        end
+
+
+        case (main_ctrl_reg)
+            CTRL_IDLE : begin end
+
+            CTRL_CONFIG : begin
+                encdec_reg = data_in[CONFIG_ENCDEC_BIT];
+                keylen_reg = data_in[CONFIG_KEYLEN_BIT];
             end
 
-            STATUS : tmp_read_data = {6'h0, valid_reg, ready_reg};
-            CONFIG : config_we = 1'b1;
-            START  : begin init_new = data_in[CTRL_INIT_BIT];
-                next_new      = data_in[CTRL_NEXT_BIT];
-                tmp_read_data = {4'h0, keylen_reg, encdec_reg, next_reg, init_reg};
+            CTRL_KEY : begin
+                counter_inc = 1'b1;
+                // if the state is CTRL_KEY, lock up address input. Use counter to determine if it can return to CTRL_IDLE
+                if (counter_reg < num_rounds) begin
+                    main_ctrl_new = CTRL_KEY;
+                end else begin
+                    main_ctrl_new = CTRL_IDLE;
+                end
             end
-            RESULT_OUT : result_wo = 1'b1;
 
-        endcase // address
+            CTRL_BLOCK : begin
+                counter_inc = 1'b1;
+                // if the state is CTRL_KEY, lock up address input. Use counter to determine if it can return to CTRL_IDLE
+                if (counter_reg < num_rounds) begin
+                    main_ctrl_new = CTRL_BLOCK;
+                end else begin
+                    main_ctrl_new = CTRL_IDLE;
+                end
+            end
 
+            CTRL_STATUS : begin
+                tmp_data_out = {6'b0, valid_reg, ready_reg};
+            end
+
+            CTRL_MAIN : begin
+                init_new = data_in[START_INIT_BIT];
+                next_new = data_in[START_NEXT_BIT];
+                tmp_data_out = {4'b0, keylen_reg, encdec_reg, next_reg, init_reg}; // can use this address to check input data
+            end
+
+            CTRL_OUTPUTING : begin
+                counter_inc = 1'b1;
+                if (counter_reg < num_rounds) begin
+                    main_ctrl_new = CTRL_BLOCK;
+                end else begin
+                    main_ctrl_new = CTRL_IDLE;
+                end
+            end
+
+            default : begin
+                // if the address is invalid, fall into default
+                main_ctrl_new = CTRL_IDLE;
+            end
+        endcase // main_ctrl_reg
     end
 
 
+    // -------------------------------------------------------------------------------------------//
+    // ----------------------------------------- counter  ----------------------------------------//
+    // -------------------------------------------------------------------------------------------//
+
+    always @(*) begin : counter
+        // default assignments
+        counter_new = 4'h0;
+        if (counter_inc) begin
+            counter_new = counter_reg + 1'b1;
+        end
+    end // counter
 
 
 

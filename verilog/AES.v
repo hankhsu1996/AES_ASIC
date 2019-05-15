@@ -27,15 +27,15 @@ module AES (
 
     localparam ADDR_BLOCK = 4'h3;
 
-    localparam ADDR_STATUS      = 4'h4;
+    localparam ADDR_STATUS      = 4'h5;
     localparam STATUS_READY_BIT = 0   ; // not used.
     localparam STATUS_VALID_BIT = 1   ;
 
-    localparam ADDR_START     = 4'hf;
+    localparam ADDR_START     = 4'h6;
     localparam START_INIT_BIT = 0   ;
     localparam START_NEXT_BIT = 1   ;
 
-    localparam ADDR_RESULT = 4'h5;
+    localparam ADDR_RESULT = 4'h7;
 
     // -------------------------------------------------------------------------------------//
     // ------------------------------- finite state machine --------------------------------//
@@ -165,7 +165,9 @@ module AES (
             result_reg <= 128'b0;
             valid_reg  <= 1'b0;
 
+            main_ctrl_reg <= CTRL_IDLE;
             counter_reg <= 4'h0;
+
 
         end else begin
             init_reg  <= init_new;
@@ -175,6 +177,7 @@ module AES (
             result_reg <= core_result;
             valid_reg  <= core_valid;
 
+            main_ctrl_reg <= main_ctrl_new;
             counter_reg <= counter_new;
 
             // init reg, next reg, key reg, kenlen reg, block reg
@@ -211,6 +214,7 @@ module AES (
             num_rounds = OUTPUT_ROUNDS;
         end
 
+        // $display("case: %h", main_ctrl_reg);
 
         case (main_ctrl_reg)
             CTRL_IDLE : begin end
@@ -261,6 +265,8 @@ module AES (
 
             default : begin
                 // if the address is invalid, fall into default
+                // $display("error: entering default section");
+                // $display("main_ctrl_reg is %h", main_ctrl_reg);
                 main_ctrl_new = CTRL_IDLE;
             end
         endcase // main_ctrl_reg

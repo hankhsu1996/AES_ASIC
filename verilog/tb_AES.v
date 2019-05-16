@@ -65,7 +65,29 @@ module tb_AES ();
 	reg [127:0] mem_key_256  [0:`TEST_LEN_256*15-1];
 	reg [127:0] golden_256   [   0:`TEST_LEN_256-1];
 
-	integer i, err_count;
+	reg  [127:0] block         ;
+	wire [ 15:0] block_tmp[7:0];
+	assign block_tmp[0] = block[16*8-1:16*7];
+	assign block_tmp[1] = block[16*7-1:16*6];
+	assign block_tmp[2] = block[16*6-1:16*5];
+	assign block_tmp[3] = block[16*5-1:16*4];
+	assign block_tmp[4] = block[16*4-1:16*3];
+	assign block_tmp[5] = block[16*3-1:16*2];
+	assign block_tmp[6] = block[16*2-1:16*1];
+	assign block_tmp[7] = block[16*1-1:16*0];
+
+	reg  [128:0] key         ;
+	wire [ 15:0] key_tmp[7:0];
+	assign key_tmp[0] = key[16*8-1:16*7];
+	assign key_tmp[1] = key[16*7-1:16*6];
+	assign key_tmp[2] = key[16*6-1:16*5];
+	assign key_tmp[3] = key[16*5-1:16*4];
+	assign key_tmp[4] = key[16*4-1:16*3];
+	assign key_tmp[5] = key[16*3-1:16*2];
+	assign key_tmp[6] = key[16*2-1:16*1];
+	assign key_tmp[7] = key[16*1-1:16*0];
+
+	integer i, j, err_count;
 
 
 	// generate clock
@@ -179,58 +201,27 @@ module tb_AES ();
 		// new encdec is set to 1, and keylen is set to 1 (AES256 encryption)
 		// we can now start to input the key
 
+		// TODO
+		// for (i = 0; i)
+
+		
 		#(`HALF_CYCLE*2)
 			address = ADDR_KEY;
 
 		// wait util the next clk because of the state machine mechanism
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+0][16*8-1:16*7];
+		key = mem_key_256[0*15+0];
+		for (j = 0; j < 8; j = j + 1) begin
+			#(`HALF_CYCLE*2);
+			data_in = key_tmp[j];
+		end
 
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+0][16*7-1:16*6];
+		key = mem_key_256[0*15+1];
+		for (j = 0; j < 8; j = j + 1) begin
+			#(`HALF_CYCLE*2);
+			data_in = key_tmp[j];
+		end
 
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+0][16*6-1:16*5];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+0][16*5-1:16*4];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+0][16*4-1:16*3];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+0][16*3-1:16*2];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+0][16*2-1:16*1];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+0][16*1-1:16*0];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+1][16*8-1:16*7];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+1][16*7-1:16*6];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+1][16*6-1:16*5];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+1][16*5-1:16*4];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+1][16*4-1:16*3];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+1][16*3-1:16*2];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+1][16*2-1:16*1];
-
-		// after last round, change the address to CTRL
-		#(`HALF_CYCLE*2)
-			data_in = mem_key_256[0*15+1][16*1-1:16*0];
+		// after inputing the key, change the address to START
 		address = ADDR_START;
 
 		// FSM changes to start state, set init to start the key generation1
@@ -250,33 +241,16 @@ module tb_AES ();
 		end
 
 		// prepare to input the block
-		#(`HALF_CYCLE*2)
+		#(`HALF_CYCLE*2);
 			address = ADDR_BLOCK;
 
-		#(`HALF_CYCLE*2)
-			data_in = mem_block_256[0][16*8-1:16*7];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_block_256[0][16*7-1:16*6];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_block_256[0][16*6-1:16*5];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_block_256[0][16*5-1:16*4];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_block_256[0][16*4-1:16*3];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_block_256[0][16*3-1:16*2];
-
-		#(`HALF_CYCLE*2)
-			data_in = mem_block_256[0][16*2-1:16*1];
+		block = mem_block_256[0];
+		for (j = 0; j < 8; j = j + 1) begin
+			#(`HALF_CYCLE*2);
+			data_in = block_tmp[j];
+		end
 
 		// after last round, start the encipher
-		#(`HALF_CYCLE*2)
-			data_in = mem_block_256[0][16*1-1:16*0];
 		address = ADDR_START;
 
 		#(`HALF_CYCLE*2)

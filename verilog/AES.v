@@ -19,6 +19,8 @@ module AES (
     // -------------------------------- address definition ---------------------------------//
     // -------------------------------------------------------------------------------------//
 
+    localparam ADDR_IDLE = 4'h0;
+
     localparam ADDR_CONFIG       = 4'h1;
     localparam CONFIG_ENCDEC_BIT = 0   ;
     localparam CONFIG_KEYLEN_BIT = 1   ;
@@ -88,11 +90,12 @@ module AES (
 
     reg  [127:0] result_reg ;
     wire [127:0] core_result;
+    wire [7:0] result_tmp [15:0];
     reg          valid_reg  ;
     wire         core_valid ;
 
     // according to current state, output corresponding data
-    reg [15:0] tmp_data_out;
+    reg [7:0] tmp_data_out;
 
     // for state machine counter
     reg [3:0] main_ctrl_reg;
@@ -122,6 +125,22 @@ module AES (
         block_reg[0], block_reg[1], block_reg[2], block_reg[3],
         block_reg[4], block_reg[5], block_reg[6], block_reg[7]
     };
+    assign result_tmp[0] = result_reg[127-8*0:120-8*0];
+    assign result_tmp[1] = result_reg[127-8*1:120-8*1];
+    assign result_tmp[2] = result_reg[127-8*2:120-8*2];
+    assign result_tmp[3] = result_reg[127-8*3:120-8*3];
+    assign result_tmp[4] = result_reg[127-8*4:120-8*4];
+    assign result_tmp[5] = result_reg[127-8*5:120-8*5];
+    assign result_tmp[6] = result_reg[127-8*6:120-8*6];
+    assign result_tmp[7] = result_reg[127-8*7:120-8*7];
+    assign result_tmp[8] = result_reg[127-8*8:120-8*8];
+    assign result_tmp[9] = result_reg[127-8*9:120-8*9];
+    assign result_tmp[10] = result_reg[127-8*10:120-8*10];
+    assign result_tmp[11] = result_reg[127-8*11:120-8*11];
+    assign result_tmp[12] = result_reg[127-8*12:120-8*12];
+    assign result_tmp[13] = result_reg[127-8*13:120-8*13];
+    assign result_tmp[14] = result_reg[127-8*14:120-8*14];
+    assign result_tmp[15] = result_reg[127-8*15:120-8*15];
 
     assign data_out = tmp_data_out;
 
@@ -155,18 +174,18 @@ module AES (
             next_reg   <= 1'b0;
             ready_reg  <= 1'b0;
 
-            for (i = 0; i < 15; i = i + 1)
+            for (i = 0; i < 16; i = i + 1)
                 key_reg[i] <= 16'h0;
             keylen_reg <= 1'b0;
 
-            for (i = 0; i < 7; i = i + 1) // concurrent assignment, do not use begin
+            for (i = 0; i < 8; i = i + 1) // concurrent assignment, do not use begin
                 block_reg[i] <= 16'h0;
 
             result_reg <= 128'b0;
             valid_reg  <= 1'b0;
 
             main_ctrl_reg <= CTRL_IDLE;
-            counter_reg <= 4'h0;
+            counter_reg   <= 4'h0;
 
 
         end else begin
@@ -178,10 +197,17 @@ module AES (
             valid_reg  <= core_valid;
 
             main_ctrl_reg <= main_ctrl_new;
-            counter_reg <= counter_new;
+            counter_reg   <= counter_new;
 
-            // init reg, next reg, key reg, kenlen reg, block reg
+            // use main_ctrl_reg or address?
+            // I guess both will work but main_ctrl_reg wait another clk 
+            if (main_ctrl_reg == CTRL_KEY) begin
+                key_reg[counter_reg] <= data_in;
+            end
 
+            if (main_ctrl_reg == CTRL_BLOCK) begin
+                block_reg[counter_reg] <= data_in;
+            end
         end
 
     end
@@ -197,7 +223,7 @@ module AES (
         next_new      = 1'b0;
         counter_new   = 4'h0;
         main_ctrl_new = address; // BE CAREFUL!!!! Make sure there is no conflict. If the data is inputing or outputing, the main_ctrl_new should be overrided.
-        tmp_data_out  = 16'b0;
+        tmp_data_out  = 8'b0;
         counter_inc   = 1'b0;
 
         // get num_rounds
@@ -214,18 +240,29 @@ module AES (
             num_rounds = OUTPUT_ROUNDS;
         end
 
-        // $display("case: %h", main_ctrl_reg);
+        // process instance address assign
+        // avoid that STATE wait for clk one time, and init/next/edndec/keylen wait for another clk
+        if (address == ADDR_START) begin
+            init_new = data_in[START_INIT_BIT];
+            next_new = data_in[START_NEXT_BIT];
 
+        end else if (address == ADDR_CONFIG) begin
+            encdec_reg = data_in[CONFIG_ENCDEC_BIT];
+            keylen_reg = data_in[CONFIG_KEYLEN_BIT];
+
+        end else if (address == ADDR_RESULT) begin
+            tmp_data_out = result_tmp[counter_reg];
+        end
+
+        // main state machine
         case (main_ctrl_reg)
             CTRL_IDLE : begin end
 
-            CTRL_CONFIG : begin
-                encdec_reg = data_in[CONFIG_ENCDEC_BIT];
-                keylen_reg = data_in[CONFIG_KEYLEN_BIT];
-            end
+            CTRL_CONFIG : begin end
 
             CTRL_KEY : begin
                 counter_inc = 1'b1;
+
                 // if the state is CTRL_KEY, lock up address input. Use counter to determine if it can return to CTRL_IDLE
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_KEY;
@@ -249,15 +286,13 @@ module AES (
             end
 
             CTRL_MAIN : begin
-                init_new = data_in[START_INIT_BIT];
-                next_new = data_in[START_NEXT_BIT];
                 tmp_data_out = {4'b0, keylen_reg, encdec_reg, next_reg, init_reg}; // can use this address to check input data
             end
 
             CTRL_OUTPUTING : begin
                 counter_inc = 1'b1;
-                if (counter_reg < num_rounds) begin
-                    main_ctrl_new = CTRL_BLOCK;
+                if (counter_reg <= num_rounds) begin
+                    main_ctrl_new = CTRL_OUTPUTING;
                 end else begin
                     main_ctrl_new = CTRL_IDLE;
                 end

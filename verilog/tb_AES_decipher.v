@@ -1,8 +1,8 @@
 `include "AES_decipher.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
-`define TEST_LEN_128 1
-`define TEST_LEN_256 1
+`define TEST_LEN_128 100
+`define TEST_LEN_256 100
 
 module tb_AES_decipher ();
 
@@ -92,10 +92,11 @@ module tb_AES_decipher ();
 
 				@(negedge clk) begin
 					if (counter == 10) begin
-						$display("start testing decipher.\nin the initial round:\nblock in: %h\nkey in:   %h\n", block, round_key);
+						$display("start testing decipher.");
+						$display("in the initial round:\nblock in: %h\nkey in:   %h\n", block, round_key);
 					end else begin
 						$display("in round %d:", round);
-						$display("key in:    %h\nblock out: %h\nready: %b\n", round_key, new_block, ready);
+						$display("key in:    %h\nblock out: %h\n", round_key, new_block);
 					end
 
 				end
@@ -112,7 +113,7 @@ module tb_AES_decipher ();
 
 		end // for loop
 
-		
+
 
 
 
@@ -158,10 +159,11 @@ module tb_AES_decipher ();
 
 				@(negedge clk) begin
 					if (counter == 0) begin
-						$display("start testing decipher.\nin the initial round:\nblock in: %h\nkey in:   %h\n", block, round_key);
+						$display("start testing decipher.");
+						$display("in the initial round:\nblock in: %h\nkey in:   %h\n", block, round_key);
 					end else begin
 						$display("in round %d:", round);
-						$display("key in:    %h\nblock out: %h\nready: %b\n", round_key, new_block, ready);
+						$display("key in:    %h\nblock out: %h\n", round_key, new_block);
 					end
 
 				end
@@ -178,7 +180,7 @@ module tb_AES_decipher ();
 
 		end // for loop
 
-		
+
 
 
 		if (err_count_128 != 0) begin

@@ -841,14 +841,7 @@ module AES_decipher (
     // ---------------- basic four functions ----------------
     // ------------------------------------------------------
 
-    // function [7:0] lookupE (input [7:0] block);
-    //     lookupE = E[block];
-    // endfunction
-
-    // function [7:0] lookupL (input [7:0] block);
-    //     lookupL = L[block];
-    // endfunction
-
+    
     function [7:0] add(input [7:0] a, input [7:0] b);
         reg [8:0] temp;
         begin
@@ -871,11 +864,21 @@ module AES_decipher (
     endfunction
 
     function [31:0] inv_mixColumn32(input [31:0] block);
+        reg [7:0] test;
         begin
-            inv_mixColumn32[31:24] = lookupEL(block[7:0], 8'h09) ^ lookupEL(block[15:8], 8'h0d) ^ lookupEL(block[23:16], 8'h0b) ^ lookupEL(block[31:24], 8'h0e);
-            inv_mixColumn32[23:16] = lookupEL(block[7:0], 8'h0d) ^ lookupEL(block[15:8], 8'h0b) ^ lookupEL(block[23:16], 8'h0e) ^ lookupEL(block[31:24], 8'h09);
-            inv_mixColumn32[15: 8] = lookupEL(block[7:0], 8'h0b) ^ lookupEL(block[15:8], 8'h0e) ^ lookupEL(block[23:16], 8'h09) ^ lookupEL(block[31:24], 8'h0d);
-            inv_mixColumn32[ 7: 0] = lookupEL(block[7:0], 8'h0e) ^ lookupEL(block[15:8], 8'h09) ^ lookupEL(block[23:16], 8'h0d) ^ lookupEL(block[31:24], 8'h0b);
+
+            test = lookupEL(block[7:0], 8'h09) ^ lookupEL(block[15:8], 8'h0d) ^ lookupEL(block[23:16], 8'h0b) ^ lookupEL(block[31:24], 8'h0e);
+            // test = lookupEL(block[7:0], 8'h0d) ^ lookupEL(block[15:8], 8'h0b) ^ lookupEL(block[23:16], 8'h0e) ^ lookupEL(block[31:24], 8'h09);
+            // test = lookupEL(block[7:0], 8'h0b) ^ lookupEL(block[15:8], 8'h0e) ^ lookupEL(block[23:16], 8'h09) ^ lookupEL(block[31:24], 8'h0d);
+            // test = lookupEL(block[7:0], 8'h0e) ^ lookupEL(block[15:8], 8'h09) ^ lookupEL(block[23:16], 8'h0d) ^ lookupEL(block[31:24], 8'h0b);
+
+            inv_mixColumn32[31:24] = (block[7:0] * 8'h09) ^ (block[15:8] * 8'h0d) ^ (block[23:16] * 8'h0b) ^ (block[31:24] * 8'h0e);
+            inv_mixColumn32[23:16] = (block[7:0] * 8'h0d) ^ (block[15:8] * 8'h0b) ^ (block[23:16] * 8'h0e) ^ (block[31:24] * 8'h09);
+            inv_mixColumn32[15: 8] = (block[7:0] * 8'h0b) ^ (block[15:8] * 8'h0e) ^ (block[23:16] * 8'h09) ^ (block[31:24] * 8'h0d);
+            inv_mixColumn32[ 7: 0] = (block[7:0] * 8'h0e) ^ (block[15:8] * 8'h09) ^ (block[23:16] * 8'h0d) ^ (block[31:24] * 8'h0b);
+
+            $display("test: %h", test);
+            $display("inv_mixColumn32: %h", inv_mixColumn32[31:24]);
         end
     endfunction
 

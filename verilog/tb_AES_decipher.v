@@ -1,8 +1,8 @@
 `include "AES_decipher.v"
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
-`define TEST_LEN_128 100
-`define TEST_LEN_256 100
+`define TEST_LEN_128 1
+`define TEST_LEN_256 1
 
 module tb_AES_decipher ();
 

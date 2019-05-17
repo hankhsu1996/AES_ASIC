@@ -294,8 +294,6 @@ module AES (
 
             default : begin
                 // if the address is invalid, fall into default
-                // $display("error: entering default section");
-                // $display("main_ctrl_reg is %h", main_ctrl_reg);
                 main_ctrl_new = CTRL_IDLE;
             end
         endcase // main_ctrl_reg
@@ -313,8 +311,5 @@ module AES (
             counter_new = counter_reg + 1'b1;
         end
     end // counter
-
-
-
 
 endmodule // AES

@@ -22,8 +22,8 @@ module AES (
     localparam ADDR_IDLE = 4'h0;
 
     localparam ADDR_CONFIG       = 4'h1;
-    localparam CONFIG_ENCDEC_BIT = 0   ; // 1: enc
-    localparam CONFIG_KEYLEN_BIT = 1   ; // 1: 256
+    localparam CONFIG_ENCDEC_BIT = 0   ; // 0: dec, 1: enc
+    localparam CONFIG_KEYLEN_BIT = 1   ; // 0: 128, 1: 256
 
     localparam ADDR_KEY = 4'h2;
 
@@ -49,7 +49,7 @@ module AES (
     localparam CTRL_BLOCK     = 4'h3;
     localparam CTRL_READING   = 4'h4;
     localparam CTRL_STATUS    = 4'h5;
-    localparam CTRL_MAIN      = 4'h6;
+    localparam CTRL_START      = 4'h6;
     localparam CTRL_OUTPUTING = 4'h7;
 
     localparam AES_128_BIT_KEY = 1'h0;
@@ -281,7 +281,7 @@ module AES (
                 tmp_data_out = {6'b0, valid_reg, ready_reg};
             end
 
-            CTRL_MAIN : begin
+            CTRL_START : begin
                 tmp_data_out = {4'b0, keylen_reg, encdec_reg, next_reg, init_reg}; // can use this address to check input data
             end
 

@@ -168,6 +168,10 @@ module AES_core (
 	// -------------------- multiplexer  --------------------
 	// ------------------------------------------------------
 	always @(*) begin : multiplexer
+		
+		enc_next = 1'b0;
+		dec_next = 1'b0;
+
 		if (encdec) begin
 			enc_next        = next;
 			muxed_new_block = enc_new_block;

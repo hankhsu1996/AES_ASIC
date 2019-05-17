@@ -22,15 +22,15 @@ module AES (
     localparam ADDR_IDLE = 4'h0;
 
     localparam ADDR_CONFIG       = 4'h1;
-    localparam CONFIG_ENCDEC_BIT = 0   ;
-    localparam CONFIG_KEYLEN_BIT = 1   ;
+    localparam CONFIG_ENCDEC_BIT = 0   ; // 1: enc
+    localparam CONFIG_KEYLEN_BIT = 1   ; // 1: 256
 
     localparam ADDR_KEY = 4'h2;
 
     localparam ADDR_BLOCK = 4'h3;
 
     localparam ADDR_STATUS      = 4'h5;
-    localparam STATUS_READY_BIT = 0   ; // not used.
+    localparam STATUS_READY_BIT = 0   ;
     localparam STATUS_VALID_BIT = 1   ;
 
     localparam ADDR_START     = 4'h6;
@@ -88,11 +88,11 @@ module AES (
     reg  [ 15:0] block_reg [0:7]; // receive 16 bits everytime
     wire [127:0] core_block     ;
 
-    reg  [127:0] result_reg ;
-    wire [127:0] core_result;
-    wire [7:0] result_tmp [15:0];
-    reg          valid_reg  ;
-    wire         core_valid ;
+    reg  [127:0] result_reg       ;
+    wire [127:0] core_result      ;
+    wire [  7:0] result_tmp [15:0];
+    reg          valid_reg        ;
+    wire         core_valid       ;
 
     // according to current state, output corresponding data
     reg [7:0] tmp_data_out;
@@ -125,16 +125,16 @@ module AES (
         block_reg[0], block_reg[1], block_reg[2], block_reg[3],
         block_reg[4], block_reg[5], block_reg[6], block_reg[7]
     };
-    assign result_tmp[0] = result_reg[127-8*0:120-8*0];
-    assign result_tmp[1] = result_reg[127-8*1:120-8*1];
-    assign result_tmp[2] = result_reg[127-8*2:120-8*2];
-    assign result_tmp[3] = result_reg[127-8*3:120-8*3];
-    assign result_tmp[4] = result_reg[127-8*4:120-8*4];
-    assign result_tmp[5] = result_reg[127-8*5:120-8*5];
-    assign result_tmp[6] = result_reg[127-8*6:120-8*6];
-    assign result_tmp[7] = result_reg[127-8*7:120-8*7];
-    assign result_tmp[8] = result_reg[127-8*8:120-8*8];
-    assign result_tmp[9] = result_reg[127-8*9:120-8*9];
+    assign result_tmp[0]  = result_reg[127-8*0:120-8*0];
+    assign result_tmp[1]  = result_reg[127-8*1:120-8*1];
+    assign result_tmp[2]  = result_reg[127-8*2:120-8*2];
+    assign result_tmp[3]  = result_reg[127-8*3:120-8*3];
+    assign result_tmp[4]  = result_reg[127-8*4:120-8*4];
+    assign result_tmp[5]  = result_reg[127-8*5:120-8*5];
+    assign result_tmp[6]  = result_reg[127-8*6:120-8*6];
+    assign result_tmp[7]  = result_reg[127-8*7:120-8*7];
+    assign result_tmp[8]  = result_reg[127-8*8:120-8*8];
+    assign result_tmp[9]  = result_reg[127-8*9:120-8*9];
     assign result_tmp[10] = result_reg[127-8*10:120-8*10];
     assign result_tmp[11] = result_reg[127-8*11:120-8*11];
     assign result_tmp[12] = result_reg[127-8*12:120-8*12];
@@ -200,7 +200,7 @@ module AES (
             counter_reg   <= counter_new;
 
             // use main_ctrl_reg or address?
-            // I guess both will work but main_ctrl_reg wait another clk 
+            // I guess both will work but main_ctrl_reg wait another clk
             if (main_ctrl_reg == CTRL_KEY) begin
                 key_reg[counter_reg] <= data_in;
             end
@@ -266,8 +266,6 @@ module AES (
                 // if the state is CTRL_KEY, lock up address input. Use counter to determine if it can return to CTRL_IDLE
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_KEY;
-                end else begin
-                    main_ctrl_new = CTRL_IDLE;
                 end
             end
 
@@ -276,8 +274,6 @@ module AES (
                 // if the state is CTRL_KEY, lock up address input. Use counter to determine if it can return to CTRL_IDLE
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_BLOCK;
-                end else begin
-                    main_ctrl_new = CTRL_IDLE;
                 end
             end
 
@@ -291,10 +287,8 @@ module AES (
 
             CTRL_OUTPUTING : begin
                 counter_inc = 1'b1;
-                if (counter_reg <= num_rounds) begin
+                if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_OUTPUTING;
-                end else begin
-                    main_ctrl_new = CTRL_IDLE;
                 end
             end
 

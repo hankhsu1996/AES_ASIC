@@ -2,7 +2,7 @@
 `timescale 1ns/1ps
 `define HALF_CYCLE 1
 `define TEST_LEN_128 1
-`define TEST_LEN_256 1
+`define TEST_LEN_256 100
 
 module tb_AES ();
 
@@ -18,7 +18,7 @@ module tb_AES ();
 	localparam ADDR_BLOCK = 4'h3;
 
 	localparam ADDR_STATUS      = 4'h5;
-	localparam STATUS_READY_BIT = 0   ; // not used.
+	localparam STATUS_READY_BIT = 0   ;
 	localparam STATUS_VALID_BIT = 1   ;
 
 	localparam ADDR_START     = 4'h6;
@@ -76,7 +76,7 @@ module tb_AES ();
 	assign block_tmp[6] = block[16*2-1:16*1];
 	assign block_tmp[7] = block[16*1-1:16*0];
 
-	reg  [128:0] key         ;
+	reg  [127:0] key         ;
 	wire [ 15:0] key_tmp[7:0];
 	assign key_tmp[0] = key[16*8-1:16*7];
 	assign key_tmp[1] = key[16*7-1:16*6];
@@ -87,7 +87,7 @@ module tb_AES ();
 	assign key_tmp[6] = key[16*2-1:16*1];
 	assign key_tmp[7] = key[16*1-1:16*0];
 
-	integer i, j, err_count;
+	integer i, j, while_count, err_count;
 
 
 	// generate clock
@@ -122,7 +122,7 @@ module tb_AES ();
 
 	initial begin
 		// AES128 encryption
-		$display("AES128 encryption\n");
+		$display("Testing AES256 encryption\n");
 		clk = 1'b1;
 		rst_n = 1'b1;
 		encdec = 1'b1;
@@ -202,88 +202,100 @@ module tb_AES ();
 		// we can now start to input the key
 
 		// TODO
-		// for (i = 0; i)
+		for (i = 0; i < `TEST_LEN_256; i = i + 1) begin
 
-		
-		#(`HALF_CYCLE*2)
+			#(`HALF_CYCLE*2);
 			address = ADDR_KEY;
 
-		// wait util the next clk because of the state machine mechanism
-		key = mem_key_256[0*15+0];
-		for (j = 0; j < 8; j = j + 1) begin
+			// wait util the next clk because of the state machine mechanism
+			key = mem_key_256[i*15+0];
+			for (j = 0; j < 8; j = j + 1) begin
+				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
+				data_in = key_tmp[j];
+			end
+
+			key = mem_key_256[i*15+1];
+			for (j = 0; j < 8; j = j + 1) begin
+				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
+				data_in = key_tmp[j];
+			end
+
+			// after inputing the key, change the address to START
 			#(`HALF_CYCLE*2);
-			data_in = key_tmp[j];
-		end
+			address = ADDR_START;
+			data_in = 16'b0;
+			data_in[START_INIT_BIT] = 1;
 
-		key = mem_key_256[0*15+1];
-		for (j = 0; j < 8; j = j + 1) begin
+			// FSM changes to start state, set init to start the key generation1
 			#(`HALF_CYCLE*2);
-			data_in = key_tmp[j];
-		end
-
-		// after inputing the key, change the address to START
-		address = ADDR_START;
-
-		// FSM changes to start state, set init to start the key generation1
-		#(`HALF_CYCLE*2)
 			address = ADDR_STATUS;
-		data_in = 16'b0;
-		data_in[START_INIT_BIT] = 1;
+			data_in = 16'b0;
+			data_in[STATUS_READY_BIT] = 1;
 
-		// pull down the init bit
-		#(`HALF_CYCLE*2)
-			data_in[START_INIT_BIT] = 0;
+			// wait until the data_out[ready] is pulled up to 1
+			while (data_out != 8'h01) begin
+				@(negedge clk)
+					data_in = 16'b0;
+			end
 
-		// wait until the data_out[ready] is pulled up to 1
-		while (data_out != 8'h01) begin
-			@(negedge clk)
-				data_in = 16'b0;
-		end
-
-		// prepare to input the block
-		#(`HALF_CYCLE*2);
+			// prepare to input the block
+			#(`HALF_CYCLE*2);
 			address = ADDR_BLOCK;
 
-		block = mem_block_256[0];
-		for (j = 0; j < 8; j = j + 1) begin
+			block = mem_block_256[i];
+			for (j = 0; j < 8; j = j + 1) begin
+				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
+				data_in = block_tmp[j];
+			end
+
+			// after last round, start the encipher
 			#(`HALF_CYCLE*2);
-			data_in = block_tmp[j];
-		end
+			address = ADDR_START;
+			data_in = 16'b0;
+			data_in[START_NEXT_BIT] = 1;;
 
-		// after last round, start the encipher
-		address = ADDR_START;
-
-		#(`HALF_CYCLE*2)
+			#(`HALF_CYCLE*2);
 			address = ADDR_STATUS;
-		data_in = 16'b0;
-		data_in[START_NEXT_BIT] = 1;;
 
-		// wait until the data_out[valid] is pulled up to 1
-		while (data_out != 8'h02) begin
-			@(negedge clk)
-				data_in = 16'b0;
-		end
+			// wait until the data_out[valid] is pulled up to 1
+			while_count = 0;
+			while (data_out != 8'h02) begin
+				while_count = while_count + 1;
+				@(negedge clk)
+					data_in = 16'b0;
+				if (while_count > 20) begin
+					$display("infinite loop! exit simulaton with error.",);
+					$finish;
+				end
+			end
 
-		// we can now get our result
-		#(`HALF_CYCLE*2)
+			// we can now get our result
+			#(`HALF_CYCLE*2);
 			address = ADDR_RESULT;
 
-		// start transmitting the result
-		for (i = 0; i < 16; i = i + 1) begin
-			#(`HALF_CYCLE*2);
-			result_tmp[i] = data_out;
-			// result[i*8+7:i*8] = data_out;
+			// start transmitting the result
+			for (j = 0; j < 16; j = j + 1) begin
+				#(`HALF_CYCLE*2);
+				result_tmp[j] = data_out;
+			end
+			address = ADDR_IDLE;
+
+			if (result != golden_256[i]) begin
+				$display("fail the test: ");
+				$display("the result is not consistent with gloden");
+				$display("key: %h\nblock: %h", key, block);
+				$display("result: %h\ngolden: %h", result, golden_256[i]);
+				err_count = err_count + 1;
+			end
 		end
 
-		if(result != golden_256[0*15+0]) begin
-			$display("fail the test: ");
-			$display("the result is not consistent with gloden");
-			$display("resukt: %h\ngolden: %h", result, golden_256[0*15+0]);
-			err_count = err_count + 1;
+		#(`HALF_CYCLE*20);
+		if (err_count == 0) begin
+			$display("Pass all the tests.");
 		end
-
-
-		$display("Pass all the tests.");
 
 		$finish;
 

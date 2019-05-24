@@ -1,5 +1,3 @@
-`include "AES_core.v"
-
 module AES (
     input         clk     , // Clock
     input         rst_n   , // Asynchronous reset active low
@@ -7,13 +5,6 @@ module AES (
     input  [15:0] data_in , // 16 bits input
     output [ 7:0] data_out  // 8 bits output, totally 30 pins
 );
-
-    // I modified:
-    // 1. Convert to SystemVerilog 2009 syntax
-    // 2. control => address
-    // 3. Remove write enable, since I cannot understand why there is write enable reg.
-    //    If  write enable is needed, we have to add another input
-    // 4. rename parameters
 
     // -------------------------------------------------------------------------------------//
     // -------------------------------- address definition ---------------------------------//
@@ -49,7 +40,7 @@ module AES (
     localparam CTRL_BLOCK     = 4'h3;
     localparam CTRL_READING   = 4'h4;
     localparam CTRL_STATUS    = 4'h5;
-    localparam CTRL_START      = 4'h6;
+    localparam CTRL_START     = 4'h6;
     localparam CTRL_OUTPUTING = 4'h7;
 
     localparam AES_128_BIT_KEY = 1'h0;
@@ -66,7 +57,7 @@ module AES (
     // -------------------------------------------------------------------------------------//
 
     // for AES core
-    reg  encdec_reg ; // save encdec
+    reg  encdec_reg ;
     wire core_encdec;
 
     reg  init_reg ; // start generating keys
@@ -80,10 +71,11 @@ module AES (
     reg  ready_reg ;
     wire core_ready;
 
-    reg  [ 15:0] key_reg    [0:15]; // receive 16 bits everytime
-    wire [255:0] core_key         ;
-    reg          keylen_reg       ;
-    wire         core_keylen      ;
+    reg  [ 15:0] key_reg [0:15]; // receive 16 bits everytime
+    wire [255:0] core_key      ;
+
+    reg  keylen_reg ;
+    wire core_keylen;
 
     reg  [ 15:0] block_reg [0:7]; // receive 16 bits everytime
     wire [127:0] core_block     ;
@@ -187,8 +179,8 @@ module AES (
             main_ctrl_reg <= CTRL_IDLE;
             counter_reg   <= 4'h0;
 
-
         end else begin
+
             init_reg  <= init_new;
             next_reg  <= next_new;
             ready_reg <= core_ready;
@@ -208,7 +200,14 @@ module AES (
             if (main_ctrl_reg == CTRL_BLOCK) begin
                 block_reg[counter_reg] <= data_in;
             end
+
+            if (address == CTRL_CONFIG) begin
+                encdec_reg <= data_in[CONFIG_ENCDEC_BIT];
+                keylen_reg <= data_in[CONFIG_KEYLEN_BIT];
+            end
+
         end
+
     end
 
     // -------------------------------------------------------------------------------------------//
@@ -218,11 +217,17 @@ module AES (
     always @(*) begin : main_ctrl
         reg [3:0] num_rounds;
 
-        init_new      = 1'b0;
-        next_new      = 1'b0;
-        main_ctrl_new = address; // BE CAREFUL!!!! Make sure there is no conflict. If the data is inputing or outputing, the main_ctrl_new should be overrided.
-        tmp_data_out  = 8'b0;
-        counter_inc   = 1'b0;
+        init_new = 1'b0;
+        next_new = 1'b0;
+
+        // BE CAREFUL!!!!
+        // Make sure there is no conflict.
+        // If the data is inputing or outputing, the main_ctrl_new should be overrided.
+        main_ctrl_new = address;
+
+        tmp_data_out = 8'b0;
+
+        counter_inc = 1'b0;
 
         // get num_rounds
         if (main_ctrl_reg == CTRL_KEY) begin
@@ -243,11 +248,6 @@ module AES (
         if (address == ADDR_START) begin
             init_new = data_in[START_INIT_BIT];
             next_new = data_in[START_NEXT_BIT];
-
-        end else if (address == ADDR_CONFIG) begin
-            encdec_reg = data_in[CONFIG_ENCDEC_BIT];
-            keylen_reg = data_in[CONFIG_KEYLEN_BIT];
-
         end
 
         // main state machine
@@ -258,7 +258,6 @@ module AES (
 
             CTRL_KEY : begin
                 counter_inc = 1'b1;
-
                 // if the state is CTRL_KEY, lock up address input. Use counter to determine if it can return to CTRL_IDLE
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_KEY;
@@ -282,8 +281,8 @@ module AES (
             end
 
             CTRL_OUTPUTING : begin
-                counter_inc = 1'b1;
                 tmp_data_out = result_tmp[counter_reg];
+                counter_inc  = 1'b1;
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_OUTPUTING;
                 end

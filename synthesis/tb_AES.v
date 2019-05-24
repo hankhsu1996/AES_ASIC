@@ -1,5 +1,7 @@
-`include "AES.v"
-`timescale 1ns/1ps
+// `include "AES.v"
+`timescale 1ns/100ps
+`define SDFFILE "./AES.sdf"
+
 `define HALF_CYCLE 10
 `define TEST_LEN_128 100
 `define TEST_LEN_256 100
@@ -40,6 +42,10 @@ module tb_AES ();
 	localparam KEY256_ROUNDS = 4'hf;
 	localparam BLOCK_ROUNDS  = 4'h8;
 	localparam OUTPUT_ROUNDS = 4'hf;
+
+	`ifdef SDF
+		initial $sdf_annotate(`SDFFILE, tb_AES);
+	`endif
 
 	// declare reg and wire
 	// for AES module

@@ -1,5 +1,3 @@
-`timescale 1ns/1ps
-
 module AES (
     input         clk     , // Clock
     input         rst_n   , // Asynchronous reset active low
@@ -1664,14 +1662,14 @@ module AES_encipher (
 
 endmodule // AES_encipher
 module AES_key_mem_seq (
-    input  wire         clk      ,
-    input  wire         rst_n    ,
-    input  wire [255:0] key      ,
-    input  wire         keylen   ,
-    input  wire         init     ,
-    input  wire [  3:0] round    ,
-    output wire [127:0] round_key,
-    output wire         ready
+    input          clk      ,
+    input          rst_n    ,
+    input  [255:0] key      ,
+    input          keylen   ,
+    input          init     ,
+    input  [  3:0] round    ,
+    output [127:0] round_key,
+    output         ready
     // output wire [ 31:0] sboxw    ,
     // input  wire [ 31:0] new_sboxw
 );

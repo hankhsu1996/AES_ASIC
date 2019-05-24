@@ -254,7 +254,7 @@ module tb_AES ();
 			#(`HALF_CYCLE*2);
 			address = ADDR_START;
 			data_in = 16'b0;
-			data_in[START_NEXT_BIT] = 1;;
+			data_in[START_NEXT_BIT] = 1;
 
 			#(`HALF_CYCLE*2);
 			address = ADDR_STATUS;
@@ -375,7 +375,7 @@ module tb_AES ();
 			#(`HALF_CYCLE*2);
 			address = ADDR_START;
 			data_in = 16'b0;
-			data_in[START_NEXT_BIT] = 1;;
+			data_in[START_NEXT_BIT] = 1;
 
 			#(`HALF_CYCLE*2);
 			// now is in the start state. The output will be {4'b0, keylen, encdec, next, init}
@@ -507,7 +507,7 @@ module tb_AES ();
 			#(`HALF_CYCLE*2);
 			address = ADDR_START;
 			data_in = 16'b0;
-			data_in[START_NEXT_BIT] = 1;;
+			data_in[START_NEXT_BIT] = 1;
 
 			#(`HALF_CYCLE*2);
 			address = ADDR_STATUS;
@@ -636,7 +636,7 @@ module tb_AES ();
 			#(`HALF_CYCLE*2);
 			address = ADDR_START;
 			data_in = 16'b0;
-			data_in[START_NEXT_BIT] = 1;;
+			data_in[START_NEXT_BIT] = 1;
 
 			#(`HALF_CYCLE*2);
 			// now is in the start state. The output will be {4'b0, keylen, encdec, next, init}

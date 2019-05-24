@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module AES (
     input         clk     , // Clock
     input         rst_n   , // Asynchronous reset active low
@@ -219,7 +221,6 @@ module AES (
 
         init_new      = 1'b0;
         next_new      = 1'b0;
-        counter_new   = 4'h0;
         main_ctrl_new = address; // BE CAREFUL!!!! Make sure there is no conflict. If the data is inputing or outputing, the main_ctrl_new should be overrided.
         tmp_data_out  = 8'b0;
         counter_inc   = 1'b0;

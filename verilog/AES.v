@@ -248,8 +248,6 @@ module AES (
             encdec_reg = data_in[CONFIG_ENCDEC_BIT];
             keylen_reg = data_in[CONFIG_KEYLEN_BIT];
 
-        end else if (address == ADDR_RESULT) begin
-            tmp_data_out = result_tmp[counter_reg];
         end
 
         // main state machine
@@ -285,6 +283,7 @@ module AES (
 
             CTRL_OUTPUTING : begin
                 counter_inc = 1'b1;
+                tmp_data_out = result_tmp[counter_reg];
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_OUTPUTING;
                 end

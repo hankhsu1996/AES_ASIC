@@ -1,6 +1,6 @@
 `include "AES.v"
 `timescale 1ns/1ps
-`define HALF_CYCLE 1
+`define HALF_CYCLE 10
 `define TEST_LEN_128 100
 `define TEST_LEN_256 100
 
@@ -98,12 +98,15 @@ module tb_AES ();
 	);
 
 	// dump vars
-	initial begin
-		$dumpfile("AES.vcd");
+	// initial begin
+	// 	$fsdbDumpfile("AES.fsdb");
 
-		// 0: all, 1: this layer, 2: this and next layer
-		$dumpvars(2, tb_AES);
-	end
+	// 	// 0: all, 1: this layer, 2: this and next layer
+	// 	$fsdbDumpvars(2, tb_AES);
+
+	// 	// if the data is 2D
+	// 	$fsdbDumpMDA;
+	// end
 
 	// read from file
 	initial begin
@@ -121,7 +124,7 @@ module tb_AES ();
 		err_count = 0;
 		address = 4'b0;
 		data_in = 16'b0;
-		
+
 
 		// reset
 		@(negedge clk)
@@ -172,9 +175,9 @@ module tb_AES ();
 
 
 		// -----------------------------------
-		// -------- AES128 encryption -------- 
+		// -------- AES128 encryption --------
 		// -----------------------------------
-		
+
 		$display("Testing AES128 encryption");
 		address = 4'b0;
 		data_in = 16'b0;
@@ -279,23 +282,24 @@ module tb_AES ();
 			// start transmitting the result
 			for (j = 0; j < 16; j = j + 1) begin
 				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
 				result_tmp[j] = data_out;
 			end
-			address = ADDR_IDLE;
+			#(`HALF_CYCLE*2);
 
 			if (result != golden_128[i]) begin
-				$display("fail the test: ");
+				$display("fail the test in AES128 encryption: ");
 				$display("the result is not consistent with gloden");
 				$display("key:    %h\nblock:  %h", key, block);
-				$display("result: %h\ngolden: %h\n", result, golden_256[i]);
+				$display("result: %h\ngolden: %h\n", result, golden_128[i]);
 				err_count = err_count + 1;
 			end
 		end
 
 		// -----------------------------------
-		// -------- AES128 decryption -------- 
+		// -------- AES128 decryption --------
 		// -----------------------------------
-		
+
 		$display("Testing AES128 decryption");
 		address = 4'b0;
 		data_in = 16'b0;
@@ -402,12 +406,13 @@ module tb_AES ();
 			// start transmitting the result
 			for (j = 0; j < 16; j = j + 1) begin
 				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
 				result_tmp[j] = data_out;
 			end
-			address = ADDR_IDLE;
+			#(`HALF_CYCLE*2);
 
 			if (result != mem_block_128[i]) begin
-				$display("fail the test: ");
+				$display("fail the test in AES128 decryption: ");
 				$display("the result is not consistent with gloden");
 				$display("key:    %h\nblock:  %h", key, block);
 				$display("result: %h\ngolden: %h\n", result, mem_block_128[i]);
@@ -417,13 +422,13 @@ module tb_AES ();
 
 
 		// -----------------------------------
-		// -------- AES256 encryption -------- 
+		// -------- AES256 encryption --------
 		// -----------------------------------
-		
+
 		$display("Testing AES256 encryption");
 		address = 4'b0;
 		data_in = 16'b0;
-		
+
 		// start to configure. check the congiguration result
 		// be careful that when we use the CTRL_START to check the configuration, we should pull down the data_in
 		#(`HALF_CYCLE*20);
@@ -480,7 +485,7 @@ module tb_AES ();
 			data_in[STATUS_READY_BIT] = 1;
 
 			// wait until the data_out[ready] is pulled up to 1
-		#(`HALF_CYCLE*2);
+			#(`HALF_CYCLE*2);
 			while_count = 0;
 			while (data_out != 8'h01) begin
 				while_count = while_count + 1;
@@ -513,7 +518,7 @@ module tb_AES ();
 			address = ADDR_STATUS;
 
 			// wait until the data_out[valid] is pulled up to 1
-		#(`HALF_CYCLE*2);
+			#(`HALF_CYCLE*2);
 			while_count = 0;
 			while (data_out != 8'h02) begin
 				while_count = while_count + 1;
@@ -532,22 +537,23 @@ module tb_AES ();
 			// start transmitting the result
 			for (j = 0; j < 16; j = j + 1) begin
 				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
 				result_tmp[j] = data_out;
 			end
-			address = ADDR_IDLE;
+			#(`HALF_CYCLE*2);
 
 			if (result != golden_256[i]) begin
-				$display("fail the test: ");
+				$display("fail the test in AES256 encryption: ");
 				$display("the result is not consistent with gloden");
 				$display("key:    %h\nblock:  %h", key, block);
-				$display("result: %h\ngolden: %h", result, golden_256[i]);
+				$display("result: %h\ngolden: %h\n", result, golden_256[i]);
 				err_count = err_count + 1;
 			end
 		end
 
 
 		// -----------------------------------
-		// -------- AES256 decryption -------- 
+		// -------- AES256 decryption --------
 		// -----------------------------------
 
 		$display("Testing AES256 decryption");
@@ -663,12 +669,13 @@ module tb_AES ();
 			// start transmitting the result
 			for (j = 0; j < 16; j = j + 1) begin
 				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
 				result_tmp[j] = data_out;
 			end
-			address = ADDR_IDLE;
+			#(`HALF_CYCLE*2);
 
 			if (result != mem_block_256[i]) begin
-				$display("fail the test: ");
+				$display("fail the test in AES256 decryption: ");
 				$display("the result is not consistent with gloden");
 				$display("key:    %h\nblock:  %h", key, block);
 				$display("result: %h\ngolden: %h\n", result, mem_block_256[i]);

@@ -66,7 +66,8 @@ module AES (
     // -------------------------------------------------------------------------------------//
 
     // for AES core
-    reg  encdec_reg ; // save encdec
+    reg  encdec_reg ;
+    reg  encdec_new ;
     wire core_encdec;
 
     reg  init_reg ; // start generating keys
@@ -80,10 +81,12 @@ module AES (
     reg  ready_reg ;
     wire core_ready;
 
-    reg  [ 15:0] key_reg    [0:15]; // receive 16 bits everytime
-    wire [255:0] core_key         ;
-    reg          keylen_reg       ;
-    wire         core_keylen      ;
+    reg  [ 15:0] key_reg [0:15]; // receive 16 bits everytime
+    wire [255:0] core_key      ;
+
+    reg  keylen_reg ;
+    reg  keylen_new ;
+    wire core_keylen;
 
     reg  [ 15:0] block_reg [0:7]; // receive 16 bits everytime
     wire [127:0] core_block     ;
@@ -189,8 +192,8 @@ module AES (
 
 
         end else begin
-            encdec_reg <= encdec_reg;
-            keylen_reg <= keylen_reg;
+            encdec_reg <= encdec_new;
+            keylen_reg <= keylen_new;
 
             init_reg  <= init_new;
             next_reg  <= next_new;
@@ -222,11 +225,17 @@ module AES (
     always @(*) begin : main_ctrl
         reg [3:0] num_rounds;
 
-        init_new      = 1'b0;
-        next_new      = 1'b0;
-        main_ctrl_new = address; // BE CAREFUL!!!! Make sure there is no conflict. If the data is inputing or outputing, the main_ctrl_new should be overrided.
-        tmp_data_out  = 8'b0;
-        counter_inc   = 1'b0;
+        init_new = 1'b0;
+        next_new = 1'b0;
+
+        // BE CAREFUL!!!!
+        // Make sure there is no conflict.
+        // If the data is inputing or outputing, the main_ctrl_new should be overrided.
+        main_ctrl_new = address;
+
+        tmp_data_out = 8'b0;
+
+        counter_inc = 1'b0;
 
         // get num_rounds
         if (main_ctrl_reg == CTRL_KEY) begin
@@ -249,8 +258,8 @@ module AES (
             next_new = data_in[START_NEXT_BIT];
 
         end else if (address == ADDR_CONFIG) begin
-            encdec_reg = data_in[CONFIG_ENCDEC_BIT];
-            keylen_reg = data_in[CONFIG_KEYLEN_BIT];
+            encdec_new = data_in[CONFIG_ENCDEC_BIT];
+            keylen_new = data_in[CONFIG_KEYLEN_BIT];
 
         end
 
@@ -287,7 +296,7 @@ module AES (
 
             CTRL_OUTPUTING : begin
                 tmp_data_out = result_tmp[counter_reg];
-                counter_inc = 1'b1;
+                counter_inc  = 1'b1;
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_OUTPUTING;
                 end

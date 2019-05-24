@@ -104,11 +104,10 @@ module tb_AES ();
 
 	// dump vars
 	// initial begin
+	// 	// for iverilog, use dumpfile(vcd); for ncverilog, use fsdbDumpfile(fsdb)
 	// 	$fsdbDumpfile("AES.fsdb");
-
 	// 	// 0: all, 1: this layer, 2: this and next layer
 	// 	$fsdbDumpvars(2, tb_AES);
-
 	// 	// if the data is 2D
 	// 	$fsdbDumpMDA;
 	// end

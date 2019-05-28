@@ -4,7 +4,14 @@ import aes
 from PIL import Image
 
 
-def genKey(key_string):
+def genKey128(key_string):
+    m = hashlib.sha256()
+    m.update(key_string.encode())
+    hashed256 = m.hexdigest()
+    return tuple([int(hashed256[i * 8:i * 8 + 8], 16) for i in range(4)])
+
+
+def genKey256(key_string):
     m = hashlib.sha256()
     m.update(key_string.encode())
     hashed256 = m.hexdigest()
@@ -86,7 +93,7 @@ if __name__ == '__main__':
     writeToText('Tux.jpg', 'raw_data.txt')
     writeToJpg('raw_data.txt', 'test.jpg')
 
-    key = genKey('NTUEE')
+    key = genKey256('NTUEE')
 
     encryptTxtECB(key, 'raw_data.txt', 'encrypted.txt')
     writeToJpg('encrypted.txt', 'encrypted.jpg')

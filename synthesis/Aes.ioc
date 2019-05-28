@@ -1,0 +1,53 @@
+Version: 1 
+
+Orient: R90
+Pad: CORNER0          NW  CORNERD
+Pad: ipad_clk         N   
+Pad: ipad_rst_n       N    
+Pad: ipad_address_0   N   
+Pad: ipad_CoreVDD1    N   VCCKD
+Pad: ipad_CoreVSS1    N   GNDKD
+Pad: ipad_address_1   N   
+Pad: ipad_address_2   N   
+Pad: ipad_address_3   N   
+Pad: ipad_data_in_0   N   
+
+
+Orient: R0 
+Pad: CORNER1          NE  CORNERD
+Pad: ipad_data_in_1   W   
+Pad: ipad_data_in_2   W  
+Pad: ipad_data_in_3   W   
+Pad: ipad_data_in_4   W   
+Pad: ipad_IOVDD1      W   VCC3IOD
+Pad: ipad_IOVSS1      W   GNDIOD
+Pad: ipad_data_in_5   W  
+Pad: ipad_data_in_6   W    
+Pad: ipad_data_in_7   W   
+Pad: ipad_data_in_8   W  
+   
+
+Orient: R180
+Pad: CORNER2          SW  CORNERD
+Pad: ipad_data_in_9    S   
+Pad: ipad_data_in_10   S   
+Pad: ipad_data_in_11   S   
+Pad: ipad_CoreVSS2    S   GNDKD
+Pad: ipad_CoreVDD2    S   VCCKD
+Pad: ipad_data_in_12   S   
+Pad: ipad_data_in_13   S   
+Pad: ipad_data_in_14   S   
+Pad: ipad_data_in_15   S   
+
+Orient: R270
+Pad: CORNER3          SE  CORNERD
+Pad: ipad_data_out_0    E   
+Pad: ipad_data_out_1    E   
+Pad: ipad_data_out_2    E   
+Pad: ipad_data_out_3    E    
+Pad: ipad_IOVDD2      E   VCC3IOD
+Pad: ipad_IOVSS2      E   GNDIOD
+Pad: ipad_data_out_4    E   
+Pad: ipad_data_out_5    E    
+Pad: ipad_data_out_6    E   
+Pad: ipad_data_out_7    E   

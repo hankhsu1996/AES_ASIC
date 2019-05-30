@@ -15,6 +15,7 @@ module AES (
     localparam ADDR_CONFIG       = 4'h1;
     localparam CONFIG_ENCDEC_BIT = 0   ; // 0: dec, 1: enc
     localparam CONFIG_KEYLEN_BIT = 1   ; // 0: 128, 1: 256
+    localparam CONFIG_MODE_BIT   = 2   ; // 0: ECB, 1: CBC
 
     localparam ADDR_KEY = 4'h2;
 
@@ -30,6 +31,8 @@ module AES (
 
     localparam ADDR_RESULT = 4'h7;
 
+    localparam ADDR_IV = 4'h8;
+
     // -------------------------------------------------------------------------------------//
     // ------------------------------- finite state machine --------------------------------//
     // -------------------------------------------------------------------------------------//
@@ -42,6 +45,7 @@ module AES (
     localparam CTRL_STATUS    = 4'h5;
     localparam CTRL_START     = 4'h6;
     localparam CTRL_OUTPUTING = 4'h7;
+    localparam CTRL_IV        = 4'h8;
 
     localparam AES_128_BIT_KEY = 1'h0;
     localparam AES_256_BIT_KEY = 1'h1;
@@ -49,6 +53,7 @@ module AES (
     localparam KEY128_ROUNDS = 4'h8;
     localparam KEY256_ROUNDS = 4'hf;
     localparam BLOCK_ROUNDS  = 4'h8;
+    localparam IV_ROUNDS     = 4'h8;
     localparam OUTPUT_ROUNDS = 4'hf;
 
 
@@ -77,8 +82,15 @@ module AES (
     reg  keylen_reg ;
     wire core_keylen;
 
-    reg  [ 15:0] block_reg [0:7]; // receive 16 bits everytime
-    wire [127:0] core_block     ;
+    reg mode_reg;
+
+    reg  [ 15:0] IV_reg[0:7]; // receive 16 bits everytime
+    wire [127:0] IV         ;
+
+    reg  [ 15:0] block_reg     [0:7]; // receive 16 bits everytime
+    wire [127:0] core_block         ;
+    reg  [127:0] muxed_block_in     ;
+    reg  [127:0] muxed_block_out     ;
 
     reg  [127:0] result_reg       ;
     wire [127:0] core_result      ;
@@ -113,26 +125,30 @@ module AES (
         key_reg[12], key_reg[13], key_reg[14], key_reg[15]
     };
     assign core_keylen = keylen_reg;
-    assign core_block  = {
+    assign IV          = {
+        IV_reg[0], IV_reg[1], IV_reg[2], IV_reg[3],
+        IV_reg[4], IV_reg[5], IV_reg[6], IV_reg[7]
+    };
+    assign core_block = {
         block_reg[0], block_reg[1], block_reg[2], block_reg[3],
         block_reg[4], block_reg[5], block_reg[6], block_reg[7]
     };
-    assign result_tmp[0]  = result_reg[127-8*0:120-8*0];
-    assign result_tmp[1]  = result_reg[127-8*1:120-8*1];
-    assign result_tmp[2]  = result_reg[127-8*2:120-8*2];
-    assign result_tmp[3]  = result_reg[127-8*3:120-8*3];
-    assign result_tmp[4]  = result_reg[127-8*4:120-8*4];
-    assign result_tmp[5]  = result_reg[127-8*5:120-8*5];
-    assign result_tmp[6]  = result_reg[127-8*6:120-8*6];
-    assign result_tmp[7]  = result_reg[127-8*7:120-8*7];
-    assign result_tmp[8]  = result_reg[127-8*8:120-8*8];
-    assign result_tmp[9]  = result_reg[127-8*9:120-8*9];
-    assign result_tmp[10] = result_reg[127-8*10:120-8*10];
-    assign result_tmp[11] = result_reg[127-8*11:120-8*11];
-    assign result_tmp[12] = result_reg[127-8*12:120-8*12];
-    assign result_tmp[13] = result_reg[127-8*13:120-8*13];
-    assign result_tmp[14] = result_reg[127-8*14:120-8*14];
-    assign result_tmp[15] = result_reg[127-8*15:120-8*15];
+    assign result_tmp[0]  = muxed_block_out[127-8*0:120-8*0];
+    assign result_tmp[1]  = muxed_block_out[127-8*1:120-8*1];
+    assign result_tmp[2]  = muxed_block_out[127-8*2:120-8*2];
+    assign result_tmp[3]  = muxed_block_out[127-8*3:120-8*3];
+    assign result_tmp[4]  = muxed_block_out[127-8*4:120-8*4];
+    assign result_tmp[5]  = muxed_block_out[127-8*5:120-8*5];
+    assign result_tmp[6]  = muxed_block_out[127-8*6:120-8*6];
+    assign result_tmp[7]  = muxed_block_out[127-8*7:120-8*7];
+    assign result_tmp[8]  = muxed_block_out[127-8*8:120-8*8];
+    assign result_tmp[9]  = muxed_block_out[127-8*9:120-8*9];
+    assign result_tmp[10] = muxed_block_out[127-8*10:120-8*10];
+    assign result_tmp[11] = muxed_block_out[127-8*11:120-8*11];
+    assign result_tmp[12] = muxed_block_out[127-8*12:120-8*12];
+    assign result_tmp[13] = muxed_block_out[127-8*13:120-8*13];
+    assign result_tmp[14] = muxed_block_out[127-8*14:120-8*14];
+    assign result_tmp[15] = muxed_block_out[127-8*15:120-8*15];
 
     assign data_out = tmp_data_out;
 
@@ -141,18 +157,60 @@ module AES (
     // -------------------------------------------------------------------------------------------//
 
     AES_core core (
-        .clk         (clk        ),
-        .rst_n       (rst_n      ),
-        .encdec      (core_encdec),
-        .init        (core_init  ),
-        .next        (core_next  ),
-        .ready       (core_ready ),
-        .key         (core_key   ),
-        .keylen      (core_keylen),
-        .block       (core_block ),
-        .result      (core_result),
-        .result_valid(core_valid )
+        .clk         (clk           ),
+        .rst_n       (rst_n         ),
+        .encdec      (core_encdec   ),
+        .init        (core_init     ),
+        .next        (core_next     ),
+        .ready       (core_ready    ),
+        .key         (core_key      ),
+        .keylen      (core_keylen   ),
+        .block       (muxed_block_in),
+        .result      (core_result   ),
+        .result_valid(core_valid    )
     );
+
+
+    // -------------------------------------------------------------------------------------------//
+    // ---------------------------------- multiplexer for mode -----------------------------------//
+    // -------------------------------------------------------------------------------------------//
+
+    always @(*) begin : mode
+        if (mode_reg && encdec_reg) begin // if CBC mode & enc mode
+            muxed_block_in = core_block ^ IV;
+        end else begin
+            muxed_block_in = core_block;
+        end
+
+        if (mode_reg && !encdec_reg) begin // if CBC mode & enc mode
+            muxed_block_out = result_reg ^ IV;
+        end else begin
+            muxed_block_out = result_reg;
+        end        
+
+        if (valid_reg && encdec_reg) begin
+            IV_reg[0] = result_reg[127-16*0:112-16*0];
+            IV_reg[1] = result_reg[127-16*1:112-16*1];
+            IV_reg[2] = result_reg[127-16*2:112-16*2];
+            IV_reg[3] = result_reg[127-16*3:112-16*3];
+            IV_reg[4] = result_reg[127-16*4:112-16*4];
+            IV_reg[5] = result_reg[127-16*5:112-16*5];
+            IV_reg[6] = result_reg[127-16*6:112-16*6];
+            IV_reg[7] = result_reg[127-16*7:112-16*7];
+        end
+
+        if (main_ctrl_reg == CTRL_OUTPUTING && counter_reg == 4'hf && !encdec_reg) begin
+            IV_reg[0] = block_reg[0];
+            IV_reg[1] = block_reg[1];
+            IV_reg[2] = block_reg[2];
+            IV_reg[3] = block_reg[3];
+            IV_reg[4] = block_reg[4];
+            IV_reg[5] = block_reg[5];
+            IV_reg[6] = block_reg[6];
+            IV_reg[7] = block_reg[7];
+        end
+    end
+
 
     // -------------------------------------------------------------------------------------------//
     // -------------------------------------- register update ------------------------------------//
@@ -165,13 +223,16 @@ module AES (
             init_reg   <= 1'b0;
             next_reg   <= 1'b0;
             ready_reg  <= 1'b0;
+            mode_reg   <= 1'b0;
 
             for (i = 0; i < 16; i = i + 1)
                 key_reg[i] <= 16'h0;
             keylen_reg <= 1'b0;
 
-            for (i = 0; i < 8; i = i + 1) // concurrent assignment, do not use begin
+            for (i = 0; i < 8; i = i + 1) begin// concurrent assignment, do not use begin
                 block_reg[i] <= 16'h0;
+                IV_reg[i]    <= 16'h0;
+            end
 
             result_reg <= 128'b0;
             valid_reg  <= 1'b0;
@@ -197,6 +258,10 @@ module AES (
                 key_reg[counter_reg] <= data_in;
             end
 
+            if (main_ctrl_reg == CTRL_IV) begin
+                IV_reg[counter_reg] <= data_in;
+            end
+
             if (main_ctrl_reg == CTRL_BLOCK) begin
                 block_reg[counter_reg] <= data_in;
             end
@@ -204,6 +269,7 @@ module AES (
             if (address == CTRL_CONFIG) begin
                 encdec_reg <= data_in[CONFIG_ENCDEC_BIT];
                 keylen_reg <= data_in[CONFIG_KEYLEN_BIT];
+                mode_reg   <= data_in[CONFIG_MODE_BIT];
             end
 
         end
@@ -238,6 +304,8 @@ module AES (
             end
         end else if(main_ctrl_reg == CTRL_BLOCK) begin
             num_rounds = BLOCK_ROUNDS;
+        end else if(main_ctrl_reg == CTRL_IV) begin
+            num_rounds = IV_ROUNDS;
         end else begin
             // CTRL_OUTPUT or dump
             num_rounds = OUTPUT_ROUNDS;
@@ -266,7 +334,6 @@ module AES (
 
             CTRL_BLOCK : begin
                 counter_inc = 1'b1;
-                // if the state is CTRL_KEY, lock up address input. Use counter to determine if it can return to CTRL_IDLE
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_BLOCK;
                 end
@@ -277,7 +344,7 @@ module AES (
             end
 
             CTRL_START : begin
-                tmp_data_out = {4'b0, keylen_reg, encdec_reg, next_reg, init_reg}; // can use this address to check input data
+                tmp_data_out = {3'b0, mode_reg, keylen_reg, encdec_reg, next_reg, init_reg}; // can use this address to check input data
             end
 
             CTRL_OUTPUTING : begin
@@ -285,6 +352,13 @@ module AES (
                 counter_inc  = 1'b1;
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_OUTPUTING;
+                end
+            end
+
+            CTRL_IV : begin
+                counter_inc = 1'b1;
+                if (counter_reg < num_rounds) begin
+                    main_ctrl_new = CTRL_IV;
                 end
             end
 
@@ -309,6 +383,8 @@ module AES (
     end // counter
 
 endmodule // AES
+
+
 module AES_core (
     input          clk         , // Clock
     input          rst_n       , // Asynchronous reset active low

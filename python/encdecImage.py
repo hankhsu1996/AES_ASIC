@@ -123,10 +123,8 @@ def decryptTxtCBC(key, IV, txtInFilename, txtOutFilename):
         IV_this = IV_next
         IV_next = block
         dec_tuple = aes.aes_decipher_block(key, block)
-        print(''.join(['{:08x}'.format(t) for t in dec_tuple]))
         dec_tuple = tuple([dec_tuple[i] ^ IV_this[i] for i in range(4)])
         dec_hex = ''.join(['{:08x}'.format(t) for t in dec_tuple])
-        # print(dec_hex)
         new_data_hex += dec_hex
 
     with open(txtOutFilename, 'w') as fw:
@@ -167,11 +165,11 @@ def writeToJpg(txtFilename, jpgFilename):
 if __name__ == '__main__':
     writeToText('DAT/Tux.jpg', 'DAT/raw_data.txt')
 
-    key = genKey256('NTUEE')
+    key = genKey128('NTUEE')
     IV = genKey128('Integrated Circuits Design Laboratory')
 
-    # encryptTxtCBC(key, IV, 'DAT/raw_data.txt', 'DAT/encrypted.txt')
+    encryptTxtCBC(key, IV, 'DAT/raw_data.txt', 'DAT/encrypted.txt')
     # writeToJpg('DAT/encrypted.txt', 'DAT/encrypted.jpg')
 
-    decryptTxtCBC(key, IV, 'DAT/encrypted.txt', 'DAT/decrypted.txt')
+    # decryptTxtCBC(key, IV, 'DAT/encrypted.txt', 'DAT/decrypted.txt')
     # writeToJpg('DAT/decrypted.txt', 'DAT/decrypted.jpg')

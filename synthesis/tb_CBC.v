@@ -3,7 +3,7 @@
 `define SDFFILE "./AES.sdf"
 
 `define HALF_CYCLE 10
-`define TEST_LEN_128 1
+`define TEST_LEN_128 50
 `define TEST_LEN_256 50
 
 `define TEST_AES128_ENC 1
@@ -62,9 +62,8 @@ module tb_CBC ();
 	reg [127:0] mem_key[1:0];
 	reg [127:0] mem_IV [0:0];
 
-	reg [127:0] mem_block_128[0:`TEST_LEN_128-1];
 	reg [127:0] golden_128   [0:`TEST_LEN_128-1];
-	reg [127:0] mem_block_256[0:`TEST_LEN_256-1];
+	reg [127:0] mem_block[0:`TEST_LEN_256-1];
 	reg [127:0] golden_256   [0:`TEST_LEN_256-1];
 
 	reg  [127:0] block         ;
@@ -133,12 +132,10 @@ module tb_CBC ();
 
 	// read from file
 	initial begin
-		// $readmemh("../verilog/DAT/data_CBC_128.txt", mem_block_128);
-		// $readmemh("../verilog/DAT/data_keyGen128.txt", mem_key_128);
-		// $readmemh("../verilog/DAT/golden_AES128_core.txt", golden_128);
-		$readmemh("../verilog/DAT/data_CBC_256.txt", mem_block_256);
+		$readmemh("../verilog/DAT/data_CBC.txt", mem_block);
 		$readmemh("../verilog/DAT/data_CBC_key.txt", mem_key);
 		$readmemh("../verilog/DAT/data_CBC_IV.txt", mem_IV);
+		$readmemh("../verilog/DAT/golden_CBC_128.txt", golden_128);
 		$readmemh("../verilog/DAT/golden_CBC_256.txt", golden_256);
 	end
 
@@ -196,6 +193,272 @@ module tb_CBC ();
 			$display("With messy data_in, the data_out should be %8b but the actual data_out is %8b", 8'b0, data_out);
 			err_count = err_count + 1;
 		end
+
+		// -----------------------------------
+		// -------- AES128 encryption --------
+		// -----------------------------------
+
+		if (`TEST_AES128_ENC == 1) begin
+			$display("Testing AES128 encryption");
+
+			data_in = 16'b0;
+			address = ADDR_CONFIG;
+			data_in[CONFIG_ENCDEC_BIT] = 1; // enc
+			data_in[CONFIG_KEYLEN_BIT] = 0; // 128
+			data_in[CONFIG_MODE_BIT] = 1; // CBC
+
+			#(`HALF_CYCLE*2);
+			address = ADDR_START; // for config test
+			data_in = 16'b0;
+
+			#(`HALF_CYCLE*2);
+			address = ADDR_IDLE;
+			if (data_out != {8'b00010100}) begin
+				$display("fail the test: ");
+				$display("After configuring, the data_out should be %8b but the actual data_out is %8b", 8'b00010100, data_out);
+				err_count = err_count + 1;
+			end
+
+			// because we will encrypt an image with single key, do not input key in loops
+			#(`HALF_CYCLE*2);
+			address = ADDR_KEY;
+
+			// wait util the next clk because of the state machine mechanism
+			key = mem_key[0];
+			for (j = 0; j < 8; j = j + 1) begin
+				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
+				data_in = key_tmp[j];
+			end
+
+
+			// after inputing the key, change the address to START
+			#(`HALF_CYCLE*2);
+			address = ADDR_START;
+			data_in = 16'b0;
+			data_in[START_INIT_BIT] = 1;
+
+			// FSM changes to start state, set init to start the key generation
+			#(`HALF_CYCLE*2);
+			address = ADDR_STATUS;
+			data_in = 16'b0;
+
+			// wait until the data_out[ready] is pulled up to 1
+			#(`HALF_CYCLE*2);
+			while_count = 0;
+			while (data_out != 8'h01) begin
+				while_count = while_count + 1;
+				@(negedge clk)
+					data_in = 16'b0;
+				if (while_count > 25) begin
+					$display("infinite loop in AES128 encryption: key generation. exit simulaton with error.",);
+					$finish;
+				end
+			end
+
+			// because we will encrypt an image with single key, do not input key in loops
+			#(`HALF_CYCLE*2);
+			address = ADDR_IV;
+
+			// start transmit IV
+			IV = mem_IV[0];
+			for (j = 0; j < 8; j = j + 1) begin
+				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
+				data_in = IV_tmp[j];
+			end
+
+			#(`HALF_CYCLE*2);
+
+			for (i = 0; i < `TEST_LEN_128; i = i + 1) begin
+
+				// prepare to input the block
+				#(`HALF_CYCLE*2);
+				address = ADDR_BLOCK;
+
+				block = mem_block[i];
+				for (j = 0; j < 8; j = j + 1) begin
+					#(`HALF_CYCLE*2);
+					address = ADDR_IDLE;
+					data_in = block_tmp[j];
+				end
+
+				// after last round, start the encipher
+				#(`HALF_CYCLE*2);
+				address = ADDR_START;
+				data_in = 16'b0;
+				data_in[START_NEXT_BIT] = 1;
+
+				#(`HALF_CYCLE*2);
+				address = ADDR_STATUS;
+
+				// wait until the data_out[valid] is pulled up to 1
+				#(`HALF_CYCLE*2);
+				while_count = 0;
+				while (data_out != 8'h02) begin
+					while_count = while_count + 1;
+					@(negedge clk)
+						data_in = 16'b0;
+					if (while_count > 25) begin
+						$display("infinite loop in AES128 encryption: main algorithm. exit simulaton with error.",);
+						$finish;
+					end
+				end
+
+				// we can now get our result
+				#(`HALF_CYCLE*2);
+				address = ADDR_RESULT;
+
+				// start transmitting the result
+				for (j = 0; j < 16; j = j + 1) begin
+					#(`HALF_CYCLE*2);
+					address = ADDR_IDLE;
+					result_tmp[j] = data_out;
+				end
+				#(`HALF_CYCLE*2);
+
+				if (result != golden_128[i]) begin
+					$display("fail the test in AES128 encryption: ");
+					$display("the result is not consistent with gloden");
+					$display("key:    %h\nblock:  %h", key, block);
+					$display("result: %h\ngolden: %h\n", result, golden_128[i]);
+					err_count = err_count + 1;
+				end
+			end
+		end
+
+		// -----------------------------------
+		// -------- AES128 decryption --------
+		// -----------------------------------
+
+		if (`TEST_AES128_DEC == 1) begin
+			$display("Testing AES128 decryption");
+
+			data_in = 16'b0;
+			address = ADDR_CONFIG;
+			data_in[CONFIG_ENCDEC_BIT] = 0; // dec
+			data_in[CONFIG_KEYLEN_BIT] = 0; // 128
+			data_in[CONFIG_MODE_BIT] = 1; // CBC
+
+			#(`HALF_CYCLE*2);
+			address = ADDR_START; // for config test
+			data_in = 16'b0;
+
+			#(`HALF_CYCLE*2);
+			address = ADDR_IDLE;
+			if (data_out != {8'b00010000}) begin
+				$display("fail the test: ");
+				$display("After configuring, the data_out should be %8b but the actual data_out is %8b", 8'b00010000, data_out);
+				err_count = err_count + 1;
+			end
+
+			// because we will encrypt an image with single key, do not input key in loops
+			#(`HALF_CYCLE*2);
+			address = ADDR_KEY;
+
+			// wait util the next clk because of the state machine mechanism
+			key = mem_key[0];
+			for (j = 0; j < 8; j = j + 1) begin
+				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
+				data_in = key_tmp[j];
+			end
+
+			// after inputing the key, change the address to START
+			#(`HALF_CYCLE*2);
+			address = ADDR_START;
+			data_in = 16'b0;
+			data_in[START_INIT_BIT] = 1;
+
+			// FSM changes to start state, set init to start the key generation
+			#(`HALF_CYCLE*2);
+			address = ADDR_STATUS;
+			data_in = 16'b0;
+
+			// wait until the data_out[ready] is pulled up to 1
+			#(`HALF_CYCLE*2);
+			while_count = 0;
+			while (data_out != 8'h01) begin
+				while_count = while_count + 1;
+				@(negedge clk)
+					data_in = 16'b0;
+				if (while_count > 25) begin
+					$display("infinite loop in AES128 encryption: key generation. exit simulaton with error.",);
+					$finish;
+				end
+			end
+
+			// because we will encrypt an image with single key, do not input key in loops
+			#(`HALF_CYCLE*2);
+			address = ADDR_IV;
+
+			// start transmit IV
+			IV = mem_IV[0];
+			for (j = 0; j < 8; j = j + 1) begin
+				#(`HALF_CYCLE*2);
+				address = ADDR_IDLE;
+				data_in = IV_tmp[j];
+			end
+
+			#(`HALF_CYCLE*2);
+
+			for (i = 0; i < `TEST_LEN_128; i = i + 1) begin
+
+				// prepare to input the block
+				#(`HALF_CYCLE*2);
+				address = ADDR_BLOCK;
+
+				block = golden_128[i];
+				for (j = 0; j < 8; j = j + 1) begin
+					#(`HALF_CYCLE*2);
+					address = ADDR_IDLE;
+					data_in = block_tmp[j];
+				end
+
+				// after last round, start the decipher
+				#(`HALF_CYCLE*2);
+				address = ADDR_START;
+				data_in = 16'b0;
+				data_in[START_NEXT_BIT] = 1;
+
+				#(`HALF_CYCLE*2);
+				address = ADDR_STATUS;
+
+				// wait until the data_out[valid] is pulled up to 1
+				#(`HALF_CYCLE*2);
+				while_count = 0;
+				while (data_out != 8'h02) begin
+					while_count = while_count + 1;
+					@(negedge clk)
+						data_in = 16'b0;
+					if (while_count > 25) begin
+						$display("infinite loop in AES128 decryption: main algorithm. exit simulaton with error.",);
+						$finish;
+					end
+				end
+
+				// we can now get our result
+				#(`HALF_CYCLE*2);
+				address = ADDR_RESULT;
+
+				// start transmitting the result
+				for (j = 0; j < 16; j = j + 1) begin
+					#(`HALF_CYCLE*2);
+					address = ADDR_IDLE;
+					result_tmp[j] = data_out;
+				end
+				#(`HALF_CYCLE*2);
+
+				if (result != mem_block[i]) begin
+					$display("fail the test in AES128 decryption: ");
+					$display("the result is not consistent with gloden");
+					$display("key:    %h\nblock:  %h", key, block);
+					$display("result: %h\ngolden: %h\n", result, mem_block[i]);
+					err_count = err_count + 1;
+				end
+			end
+		end
+
 
 		// -----------------------------------
 		// -------- AES256 encryption --------
@@ -285,7 +548,7 @@ module tb_CBC ();
 				#(`HALF_CYCLE*2);
 				address = ADDR_BLOCK;
 
-				block = mem_block_256[i];
+				block = mem_block[i];
 				for (j = 0; j < 8; j = j + 1) begin
 					#(`HALF_CYCLE*2);
 					address = ADDR_IDLE;
@@ -465,11 +728,11 @@ module tb_CBC ();
 				end
 				#(`HALF_CYCLE*2);
 
-				if (result != mem_block_256[i]) begin
+				if (result != mem_block[i]) begin
 					$display("fail the test in AES256 decryption: ");
 					$display("the result is not consistent with gloden");
 					$display("key:    %h\nblock:  %h", key, block);
-					$display("result: %h\ngolden: %h\n", result, mem_block_256[i]);
+					$display("result: %h\ngolden: %h\n", result, mem_block[i]);
 					err_count = err_count + 1;
 				end
 			end

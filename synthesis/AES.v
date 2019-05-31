@@ -190,29 +190,7 @@ module AES (
             muxed_block_out = result_reg;
         end
 
-        if (encdec_reg) begin // enc
-            if (valid_reg) begin
-                IV_reg[0] = result_reg[127-16*0:112-16*0];
-                IV_reg[1] = result_reg[127-16*1:112-16*1];
-                IV_reg[2] = result_reg[127-16*2:112-16*2];
-                IV_reg[3] = result_reg[127-16*3:112-16*3];
-                IV_reg[4] = result_reg[127-16*4:112-16*4];
-                IV_reg[5] = result_reg[127-16*5:112-16*5];
-                IV_reg[6] = result_reg[127-16*6:112-16*6];
-                IV_reg[7] = result_reg[127-16*7:112-16*7];
-            end
-        end else begin // dec
-            if (load_IV_reg) begin
-                IV_reg[0] = block_reg[0];
-                IV_reg[1] = block_reg[1];
-                IV_reg[2] = block_reg[2];
-                IV_reg[3] = block_reg[3];
-                IV_reg[4] = block_reg[4];
-                IV_reg[5] = block_reg[5];
-                IV_reg[6] = block_reg[6];
-                IV_reg[7] = block_reg[7];
-            end
-        end  
+        
     end
 
 
@@ -268,6 +246,30 @@ module AES (
 
             if (main_ctrl_reg == CTRL_IV) begin
                 IV_reg[counter_reg] <= data_in;
+            end else begin
+                if (encdec_reg) begin // enc
+                    if (valid_reg) begin
+                        IV_reg[0] <= result_reg[127-16*0:112-16*0];
+                        IV_reg[1] <= result_reg[127-16*1:112-16*1];
+                        IV_reg[2] <= result_reg[127-16*2:112-16*2];
+                        IV_reg[3] <= result_reg[127-16*3:112-16*3];
+                        IV_reg[4] <= result_reg[127-16*4:112-16*4];
+                        IV_reg[5] <= result_reg[127-16*5:112-16*5];
+                        IV_reg[6] <= result_reg[127-16*6:112-16*6];
+                        IV_reg[7] <= result_reg[127-16*7:112-16*7];
+                    end
+                end else begin // dec
+                    if (load_IV_reg) begin
+                        IV_reg[0] <= block_reg[0];
+                        IV_reg[1] <= block_reg[1];
+                        IV_reg[2] <= block_reg[2];
+                        IV_reg[3] <= block_reg[3];
+                        IV_reg[4] <= block_reg[4];
+                        IV_reg[5] <= block_reg[5];
+                        IV_reg[6] <= block_reg[6];
+                        IV_reg[7] <= block_reg[7];
+                    end
+                end  
             end
 
             load_IV_reg <= load_IV_new;

@@ -168,8 +168,10 @@ if __name__ == '__main__':
     key = genKey128('NTUEE')
     IV = genKey128('Integrated Circuits Design Laboratory')
 
-    encryptTxtCBC(key, IV, 'DAT/raw_data.txt', 'DAT/encrypted.txt')
-    # writeToJpg('DAT/encrypted.txt', 'DAT/encrypted.jpg')
+    # encryptTxtCBC(key, IV, 'DAT/raw_data.txt', 'DAT/encrypted.txt')
+    encryptTxtECB(key, 'DAT/raw_data.txt', 'DAT/encrypted.txt')
+    writeToJpg('DAT/encrypted.txt', 'DAT/encrypted.jpg')
 
     # decryptTxtCBC(key, IV, 'DAT/encrypted.txt', 'DAT/decrypted.txt')
-    # writeToJpg('DAT/decrypted.txt', 'DAT/decrypted.jpg')
+    decryptTxtECB(key, 'DAT/encrypted.txt', 'DAT/decrypted.txt')
+    writeToJpg('DAT/decrypted.txt', 'DAT/decrypted.jpg')

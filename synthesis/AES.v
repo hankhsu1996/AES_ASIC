@@ -84,10 +84,10 @@ module AES (
 
     reg mode_reg;
 
-    reg  [ 15:0] IV_reg[0:7]; // receive 16 bits everytime
-    wire [127:0] IV         ;
-    reg load_IV_reg;
-    reg load_IV_new;
+    reg  [ 15:0] IV_reg     [0:7]; // receive 16 bits everytime
+    wire [127:0] IV              ;
+    reg          load_IV_reg     ;
+    reg          load_IV_new     ;
 
     reg  [ 15:0] block_reg      [0:7]; // receive 16 bits everytime
     wire [127:0] core_block          ;
@@ -190,7 +190,7 @@ module AES (
             muxed_block_out = result_reg;
         end
 
-        
+
     end
 
 
@@ -269,7 +269,7 @@ module AES (
                         IV_reg[6] <= block_reg[6];
                         IV_reg[7] <= block_reg[7];
                     end
-                end  
+                end
             end
 
             load_IV_reg <= load_IV_new;
@@ -295,8 +295,8 @@ module AES (
     always @(*) begin : main_ctrl
         reg [3:0] num_rounds;
 
-        init_new = 1'b0;
-        next_new = 1'b0;
+        init_new    = 1'b0;
+        next_new    = 1'b0;
         load_IV_new = 1'b0;
 
         // BE CAREFUL!!!!

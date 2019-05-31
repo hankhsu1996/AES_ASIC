@@ -4,9 +4,9 @@ Orient: R90
 Pad: CORNER0          NW  CORNERD
 Pad: ipad_clk         N   
 Pad: ipad_rst_n       N    
+Pad: ipad_address_0   N   
 Pad: ipad_CoreVDD1    N   VCCKD
 Pad: ipad_CoreVSS1    N   GNDKD
-Pad: ipad_address_0   N   
 Pad: ipad_address_1   N   
 Pad: ipad_address_2   N   
 Pad: ipad_address_3   N   

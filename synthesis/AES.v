@@ -86,10 +86,12 @@ module AES (
 
     reg  [ 15:0] IV_reg[0:7]; // receive 16 bits everytime
     wire [127:0] IV         ;
+    reg load_IV_reg;
+    reg load_IV_new;
 
-    reg  [ 15:0] block_reg     [0:7]; // receive 16 bits everytime
-    wire [127:0] core_block         ;
-    reg  [127:0] muxed_block_in     ;
+    reg  [ 15:0] block_reg      [0:7]; // receive 16 bits everytime
+    wire [127:0] core_block          ;
+    reg  [127:0] muxed_block_in      ;
     reg  [127:0] muxed_block_out     ;
 
     reg  [127:0] result_reg       ;
@@ -186,29 +188,31 @@ module AES (
             muxed_block_out = result_reg ^ IV;
         end else begin
             muxed_block_out = result_reg;
-        end        
-
-        if (valid_reg && encdec_reg) begin
-            IV_reg[0] = result_reg[127-16*0:112-16*0];
-            IV_reg[1] = result_reg[127-16*1:112-16*1];
-            IV_reg[2] = result_reg[127-16*2:112-16*2];
-            IV_reg[3] = result_reg[127-16*3:112-16*3];
-            IV_reg[4] = result_reg[127-16*4:112-16*4];
-            IV_reg[5] = result_reg[127-16*5:112-16*5];
-            IV_reg[6] = result_reg[127-16*6:112-16*6];
-            IV_reg[7] = result_reg[127-16*7:112-16*7];
         end
 
-        if (main_ctrl_reg == CTRL_OUTPUTING && counter_reg == 4'hf && !encdec_reg) begin
-            IV_reg[0] = block_reg[0];
-            IV_reg[1] = block_reg[1];
-            IV_reg[2] = block_reg[2];
-            IV_reg[3] = block_reg[3];
-            IV_reg[4] = block_reg[4];
-            IV_reg[5] = block_reg[5];
-            IV_reg[6] = block_reg[6];
-            IV_reg[7] = block_reg[7];
-        end
+        if (encdec_reg) begin // enc
+            if (valid_reg) begin
+                IV_reg[0] = result_reg[127-16*0:112-16*0];
+                IV_reg[1] = result_reg[127-16*1:112-16*1];
+                IV_reg[2] = result_reg[127-16*2:112-16*2];
+                IV_reg[3] = result_reg[127-16*3:112-16*3];
+                IV_reg[4] = result_reg[127-16*4:112-16*4];
+                IV_reg[5] = result_reg[127-16*5:112-16*5];
+                IV_reg[6] = result_reg[127-16*6:112-16*6];
+                IV_reg[7] = result_reg[127-16*7:112-16*7];
+            end
+        end else begin // dec
+            if (load_IV_reg) begin
+                IV_reg[0] = block_reg[0];
+                IV_reg[1] = block_reg[1];
+                IV_reg[2] = block_reg[2];
+                IV_reg[3] = block_reg[3];
+                IV_reg[4] = block_reg[4];
+                IV_reg[5] = block_reg[5];
+                IV_reg[6] = block_reg[6];
+                IV_reg[7] = block_reg[7];
+            end
+        end  
     end
 
 
@@ -229,10 +233,14 @@ module AES (
                 key_reg[i] <= 16'h0;
             keylen_reg <= 1'b0;
 
-            for (i = 0; i < 8; i = i + 1) begin// concurrent assignment, do not use begin
+            for (i = 0; i < 8; i = i + 1)
+                IV_reg[i] <= 16'h0;
+
+            for (i = 0; i < 8; i = i + 1) // concurrent assignment, do not use begin
                 block_reg[i] <= 16'h0;
-                IV_reg[i]    <= 16'h0;
-            end
+
+
+            load_IV_reg <= 1'b0;
 
             result_reg <= 128'b0;
             valid_reg  <= 1'b0;
@@ -262,6 +270,8 @@ module AES (
                 IV_reg[counter_reg] <= data_in;
             end
 
+            load_IV_reg <= load_IV_new;
+
             if (main_ctrl_reg == CTRL_BLOCK) begin
                 block_reg[counter_reg] <= data_in;
             end
@@ -285,6 +295,7 @@ module AES (
 
         init_new = 1'b0;
         next_new = 1'b0;
+        load_IV_new = 1'b0;
 
         // BE CAREFUL!!!!
         // Make sure there is no conflict.
@@ -352,6 +363,9 @@ module AES (
                 counter_inc  = 1'b1;
                 if (counter_reg < num_rounds) begin
                     main_ctrl_new = CTRL_OUTPUTING;
+                end
+                if (counter_reg == num_rounds) begin
+                    load_IV_new = 1'b1;
                 end
             end
 
@@ -497,8 +511,6 @@ module AES_core (
             main_ctrl_reg    <= main_ctrl_new;
             ready_reg        <= ready_new;
             result_valid_reg <= result_valid_new;
-            // $display("in core, key in:   %h", key[255:128]);
-            // $display("in core, block in: %h", block);
         end
     end
 

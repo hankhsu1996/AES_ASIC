@@ -62,9 +62,9 @@ module tb_CBC ();
 	reg [127:0] mem_key[1:0];
 	reg [127:0] mem_IV [0:0];
 
-	reg [127:0] golden_128   [0:`TEST_LEN_128-1];
-	reg [127:0] mem_block[0:`TEST_LEN_256-1];
-	reg [127:0] golden_256   [0:`TEST_LEN_256-1];
+	reg [127:0] golden_128[0:`TEST_LEN_128-1];
+	reg [127:0] mem_block [0:`TEST_LEN_256-1];
+	reg [127:0] golden_256[0:`TEST_LEN_256-1];
 
 	reg  [127:0] block         ;
 	wire [ 15:0] block_tmp[7:0];
@@ -113,22 +113,22 @@ module tb_CBC ();
 		.data_out(data_out)
 	);
 
-	// dump vars
+	// // dump vars
 	// initial begin
 	// 	// for iverilog, use dumpfile(vcd); for ncverilog, use fsdbDumpfile(fsdb)
-	// 	$fsdbDumpfile("AES.fsdb");
+	// 	$fsdbDumpfile("CBC.fsdb");
 	// 	// 0: all, 1: this layer, 2: this and next layer
-	// 	$fsdbDumpvars(2, tb_AES);
+	// 	$fsdbDumpvars(2, tb_CBC);
 	// 	// if the data is 2D
 	// 	$fsdbDumpMDA;
 	// end
 
-	initial begin
-		// for iverilog, use dumpfile(vcd); for ncverilog, use fsdbDumpfile(fsdb)
-		$dumpfile("CBC.vcd");
-		// 0: all, 1: this layer, 2: this and next layer
-		$dumpvars(2, tb_CBC);
-	end
+	// initial begin
+	// 	// for iverilog, use dumpfile(vcd); for ncverilog, use fsdbDumpfile(fsdb)
+	// 	$dumpfile("CBC.vcd");
+	// 	// 0: all, 1: this layer, 2: this and next layer
+	// 	$dumpvars(2, tb_CBC);
+	// end
 
 	// read from file
 	initial begin
@@ -324,6 +324,7 @@ module tb_CBC ();
 					$display("result: %h\ngolden: %h\n", result, golden_128[i]);
 					err_count = err_count + 1;
 				end
+				#(`HALF_CYCLE*2);
 			end
 		end
 
@@ -456,6 +457,7 @@ module tb_CBC ();
 					$display("result: %h\ngolden: %h\n", result, mem_block[i]);
 					err_count = err_count + 1;
 				end
+				#(`HALF_CYCLE*2);
 			end
 		end
 
@@ -596,6 +598,7 @@ module tb_CBC ();
 					$display("result: %h\ngolden: %h\n", result, golden_256[i]);
 					err_count = err_count + 1;
 				end
+				#(`HALF_CYCLE*2);
 			end
 		end
 
@@ -735,6 +738,7 @@ module tb_CBC ();
 					$display("result: %h\ngolden: %h\n", result, mem_block[i]);
 					err_count = err_count + 1;
 				end
+				#(`HALF_CYCLE*2);
 			end
 		end
 
